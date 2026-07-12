@@ -6,7 +6,32 @@ public class MenuEngine
     private readonly Dictionary<string, string>? _addInfo;
     private readonly string _menuTitle;
     private readonly ThemeManager _theme;
+
+    // Both prefixes are the same visual width so the item text stays aligned whether or
+    // not a row is selected, and a repaint cleanly overwrites the marker with spaces.
     private static readonly string Prefix = "    ";
+    private static readonly string SelectedPrefix = "  ▶ "; // "  ▶ "
+
+    /// <summary>
+    /// Show or hide the terminal cursor, ignoring platforms/streams that don't support it.
+    /// The menu hides the cursor so the ▶ marker is the only selection indicator (no stray
+    /// block parked at the line start); text-input paths turn it back on.
+    /// </summary>
+    internal static void SetCursorVisible(bool visible)
+    {
+        try { Console.CursorVisible = visible; }
+        catch { /* redirected output or unsupported platform */ }
+    }
+
+    private static int SafeWindowWidth()
+    {
+        try { return Console.WindowWidth; } catch { return 0; }
+    }
+
+    private static int SafeWindowHeight()
+    {
+        try { return Console.WindowHeight; } catch { return 0; }
+    }
 
     private readonly bool _isRoot;
     private readonly bool _editable;
@@ -30,11 +55,15 @@ public class MenuEngine
         _isRoot = isRoot;
         _editable = editable;
 
+        // Console.WindowWidth can be 0 when the size is undetermined (some ptys / redirected
+        // consoles); guard the truncation so a negative budget never throws.
+        var width = SafeWindowWidth();
         _currentItems = new List<MenuItem>();
         foreach (var item in items)
         {
-            var name = (item.Name.Length + Prefix.Length) > Console.WindowWidth
-                ? item.Name.Substring(0, Console.WindowWidth - Prefix.Length - 5)
+            var budget = width - Prefix.Length - 5;
+            var name = (width > 0 && item.Name.Length + Prefix.Length > width && budget > 0)
+                ? item.Name.Substring(0, budget)
                 : item.Name;
 
             _currentItems.Add(new MenuItem(name, item.Action, item.Description, item.Help));
@@ -42,10 +71,11 @@ public class MenuEngine
 
         _allItems = new List<MenuItem>(_currentItems);
 
-        if (Console.WindowHeight <= _currentItems.Count)
+        var height = SafeWindowHeight();
+        if (height > 0 && height <= _currentItems.Count)
         {
             _needShortVersion = true;
-            _shortVersionSize = Console.WindowHeight - 2;
+            _shortVersionSize = Math.Max(1, height - 2);
             _savedAllCurrentItems = _currentItems;
         }
     }
@@ -92,6 +122,7 @@ public class MenuEngine
 
         Console.ForegroundColor = _theme.Text;
         Console.Clear();
+        SetCursorVisible(false);
 
         if (_addInfo != null && _addInfo.Count > 0)
         {
@@ -175,7 +206,7 @@ public class MenuEngine
                 if (idx == selectedItemIndex)
                 {
                     Console.ForegroundColor = _theme.Selected;
-                    Console.WriteLine($"{Prefix}{item.Name}");
+                    Console.WriteLine($"{SelectedPrefix}{item.Name}");
                     Console.ForegroundColor = _theme.Text;
                 }
                 else
@@ -193,22 +224,22 @@ public class MenuEngine
         Console.WriteLine();
         Console.ForegroundColor = _theme.InfoBorder;
 
-        var hints = new List<string> { "Up/Down:Navigate", "Enter:Select" };
+        var hints = new List<string> { "Up/Down: Navigate", "Enter: Select" };
 
         if (_editable)
         {
-            hints.Add("E:Edit JSON");
-            hints.Add("Q:Quick Edit");
-            hints.Add("V:Validate");
-            hints.Add("R:Reload");
+            hints.Add("E: Edit JSON");
+            hints.Add("Q: Quick Edit");
+            hints.Add("V: Validate");
+            hints.Add("R: Reload");
         }
 
-        hints.Add("?:Info");
-        hints.Add("T:Theme");
-        hints.Add(_isRoot ? "Esc:Exit" : "Esc:Back");
+        hints.Add("?: Info");
+        hints.Add("T: Theme");
+        hints.Add(_isRoot ? "Esc: Exit" : "Esc: Back");
 
         if (_needShortVersion)
-            hints.Add("Left/Right:Page");
+            hints.Add("Left/Right: Page");
 
         Console.WriteLine($"{Prefix}{string.Join("  |  ", hints)}");
         Console.ForegroundColor = _theme.Text;
@@ -226,7 +257,7 @@ public class MenuEngine
             do
             {
                 ki = Console.ReadKey(intercept: true);
-                if (_editable && EditCommand(ki.Key) is { } editCmd) return editCmd;
+                if (_editable && EditCommand(ki.Key) is { } editCmd) { SetCursorVisible(true); return editCmd; }
                 if (ki.Key == ConsoleKey.T)
                 {
                     _theme.Toggle();
@@ -285,7 +316,7 @@ public class MenuEngine
                 var str = _currentItems[index].Name;
                 Console.ForegroundColor = _theme.Selected;
                 Console.SetCursorPosition(0, _itemsStartLine + index);
-                Console.Write($"{Prefix}{str}");
+                Console.Write($"{SelectedPrefix}{str}");
             }
 
             if (keyinfo.Key == ConsoleKey.UpArrow)
@@ -295,13 +326,14 @@ public class MenuEngine
                 var str = _currentItems[index].Name;
                 Console.ForegroundColor = _theme.Selected;
                 Console.SetCursorPosition(0, _itemsStartLine + index);
-                Console.Write($"{Prefix}{str}");
+                Console.Write($"{SelectedPrefix}{str}");
             }
 
             if (keyinfo.Key == ConsoleKey.Enter)
             {
                 try
                 {
+                    SetCursorVisible(true); // the action may prompt for input
                     var result = _currentItems[index].Action.Execute();
                     if (result != null)
                     {
@@ -329,6 +361,7 @@ public class MenuEngine
 
             if (_editable && EditCommand(keyinfo.Key) is { } editCmd)
             {
+                SetCursorVisible(true); // handing off to the editor, which reads input
                 return editCmd;
             }
 
