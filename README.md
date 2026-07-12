@@ -1,6 +1,6 @@
 # Menuki
 
-Build interactive terminal menus and runbooks from a single JSON file - the same catalog usable by humans (a keyboard-driven TUI), shell scripts (headless JSON in/out), and AI agents (MCP). No code required; ships as a single self-contained binary.
+Build interactive terminal menus and runbooks from a single JSON file - the same catalog usable by humans (a keyboard-driven TUI), shell scripts (headless JSON in/out), and AI agents (MCP). No app to compile: you write a JSON file listing shell commands, and Menuki turns it into a menu. Ships as a single self-contained binary.
 
 ## Features
 
@@ -22,7 +22,40 @@ Build interactive terminal menus and runbooks from a single JSON file - the same
 
 ## Quick Start
 
-Run straight from source:
+The whole idea in one minute: **write a JSON file that lists a few shell commands, point Menuki at it, and get an arrow-key menu.**
+
+1. Save this as `mymenu.json`:
+
+```json
+{
+  "title": "My Menu",
+  "start_menu": "main",
+  "menus": {
+    "main": {
+      "title": "What do you want to do?",
+      "items": [
+        { "name": "Say hello",     "action": { "type": "shell", "command": "echo hello" } },
+        { "name": "Show the date", "action": { "type": "shell", "command": "date" } },
+        { "name": "List files",    "action": { "type": "shell", "command": "ls -la" } }
+      ]
+    }
+  }
+}
+```
+
+2. Run it:
+
+```bash
+menuki --config mymenu.json
+```
+
+3. You get a menu: arrow keys to move, Enter to run the command, X/Esc to go back.
+
+That is the core loop. Everything else (submenus, typed inputs, sequences, background jobs, formatting) is optional and layered on top - see [Config Format](#config-format).
+
+### Running from source
+
+No install needed if you have .NET 8:
 
 ```bash
 dotnet build
