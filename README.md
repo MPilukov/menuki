@@ -9,6 +9,7 @@ Build interactive terminal menus and runbooks from a single JSON file - the same
 - **14 action types** - shell, submenu, exit, open-url, input+shell, open-file, open-config, script, sequence, parallel, delay, background, jobs, settings
 - **Themes & settings** - 7 built-in color themes (T cycles them), plus a Settings screen to toggle the selection marker; choices persist
 - **Guided tour** - `menuki tour` (and a welcome screen on no-args) walks through every feature, adapting to the tools on your machine
+- **Built-in examples** - ~20 curated packs embedded in the binary; `menuki examples <name>` runs, `--save` copies, `--print` shows one (no repo clone needed)
 - **Composite actions** - `sequence` runs steps as a mini pipeline (stop-on-error, retry, hooks); `parallel` runs them concurrently
 - **Background jobs** - `background` starts long-running processes without blocking; a `jobs` manager views/stops them
 - **Result formatting** - pretty-print / table / JSONPath-extract a shell command's output, then copy or save it
@@ -98,13 +99,29 @@ PREFIX=/usr/local/bin ./scripts/install.sh   # install elsewhere (may need sudo)
 Then:
 
 ```bash
-menuki                                                  # welcome screen
-menuki tour                                             # guided feature tour
-menuki --config Menuki/examples/dev-runbook.json   # interactive
-menuki list --config <cfg>                              # headless catalog (JSON)
-menuki exec --config <cfg> --action <id>                # headless run
-menuki validate --config <cfg>                          # check a config (JSON errors/warnings)
+menuki                                    # welcome screen
+menuki tour                               # guided feature tour
+menuki examples                           # list the built-in example packs
+menuki examples git                       # run a bundled example
+menuki --config mymenu.json               # run your own config
+menuki list --config <cfg>                # headless catalog (JSON)
+menuki exec --config <cfg> --action <id>  # headless run
+menuki validate --config <cfg>            # check a config (JSON errors/warnings)
 ```
+
+### Try the built-in examples
+
+Every install ships ~20 curated packs (git, docker, kubernetes, aws, azure,
+typed inputs, and more) embedded in the binary - no repo checkout needed:
+
+```bash
+menuki examples                 # list them
+menuki examples docker          # run one
+menuki examples docker --save   # copy it to ./docker.json to customize
+menuki examples docker --print  # print its JSON to stdout
+```
+
+They are also reachable from the welcome screen under "Browse example packs".
 
 ## Tests
 
@@ -483,7 +500,7 @@ It lets you cycle the theme and toggle the **selection marker** (the `▶` on th
 
 Any omitted field falls back to the dark theme defaults. Available color names: `Black`, `DarkBlue`, `DarkGreen`, `DarkCyan`, `DarkRed`, `DarkMagenta`, `DarkYellow`, `DarkGray`, `Gray`, `Blue`, `Green`, `Cyan`, `Red`, `Magenta`, `Yellow`, `White`.
 
-The active theme and marker preference persist in `~/.menuki/settings.json` (relocatable via the `MENUKI_HOME` environment variable). Try `Menuki/examples/themes-demo.json`.
+The active theme and marker preference persist in `~/.menuki/settings.json` (relocatable via the `MENUKI_HOME` environment variable). Try `menuki examples themes-demo`.
 
 ## Full Example
 

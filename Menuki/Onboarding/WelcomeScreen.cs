@@ -19,6 +19,7 @@ public static class WelcomeScreen
             var items = new List<MenuItem>
             {
                 Item("Take the interactive tour", "tour", "Guided, hands-on sections covering every feature."),
+                Item("Browse example packs", "examples", "Run a bundled example (git, docker, kubernetes, and more)."),
                 Item("Open an existing config", "open", "Type a path to a .json menu config and run it."),
                 Item("Create a new menu", "create", "Scaffold your own config with the wizard."),
                 Item("Settings", "settings", "Theme and appearance (also T anywhere to cycle themes)."),
@@ -39,6 +40,9 @@ public static class WelcomeScreen
             {
                 case "tour":
                     TourEntry.Run(theme);
+                    break;
+                case "examples":
+                    Examples.ExamplesScreen.Run(theme);
                     break;
                 case "open":
                     OpenExisting(theme);
