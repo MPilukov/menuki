@@ -42,6 +42,12 @@ class Program
             return;
         }
 
+        // `examples` subcommand: list / run / print / save the built-in example packs.
+        if (args.Length > 0 && args[0] == "examples")
+        {
+            Environment.Exit(Examples.ExamplesCli.Run(args));
+        }
+
         var configPath = GetConfigPath(args);
 
         // No config given: show the welcome screen (tour / open / create / help).

@@ -196,8 +196,11 @@ public static class MenuValidator
         var declared = a.Inputs.Select(x => x.Name).ToHashSet();
         var used = TemplateVar.Matches(a.CommandTemplate!).Select(m => m.Groups[1].Value).ToHashSet();
 
+        // A warning, not an error: an unmatched {name} is passed through to the shell
+        // literally (menuki only substitutes declared inputs), and brace syntax is often
+        // meant for an embedded tool - jq, printf, a python f-string like {k}, etc.
         foreach (var name in used.Where(n => !declared.Contains(n)))
-            issues.Add(new("error", where, $"command_template uses {{{name}}} but no matching input is declared."));
+            issues.Add(new("warning", where, $"command_template uses {{{name}}} but no matching input is declared; it will be passed through literally."));
 
         foreach (var name in declared.Where(n => !used.Contains(n)))
             issues.Add(new("warning", where, $"input '{name}' is declared but never used in command_template."));
