@@ -47,12 +47,29 @@ public static class InputHistory
 
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
+            var dir = Path.GetDirectoryName(FilePath)!;
+            Directory.CreateDirectory(dir);
             File.WriteAllLines(FilePath, history);
+            HardenPermissions(dir, FilePath);
         }
         catch
         {
             // history is a convenience; never let it break input.
         }
+    }
+
+    /// <summary>
+    /// Restrict the history to the owner only (dir 0700, file 0600) so no other local
+    /// user can read previously entered values. No-op on Windows (POSIX modes only).
+    /// </summary>
+    private static void HardenPermissions(string dir, string file)
+    {
+        if (OperatingSystem.IsWindows())
+            return;
+
+        File.SetUnixFileMode(dir,
+            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        File.SetUnixFileMode(file,
+            UnixFileMode.UserRead | UnixFileMode.UserWrite);
     }
 }
