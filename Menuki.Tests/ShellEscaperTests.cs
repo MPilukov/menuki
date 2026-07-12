@@ -32,7 +32,7 @@ public class ShellEscaperTests
     }
 
     [Fact]
-    public void Interpolate_quotes_every_substituted_value()
+    public void Interpolate_quotes_value_in_unquoted_context()
     {
         var command = ShellEscaper.Interpolate(
             "ssh deploy@{host} run {cmd}",
@@ -42,6 +42,49 @@ public class ShellEscaperTests
         Assert.DoesNotContain("@$(evil)", command);
         Assert.Contains("deploy@'$(evil)'", command);
         Assert.Contains("run 'a b'", command);
+    }
+
+    [Fact]
+    public void Interpolate_neutralizes_injection_inside_double_quotes()
+    {
+        var command = ShellEscaper.Interpolate(
+            "git commit -m \"{msg}\"",
+            new Dictionary<string, string> { ["msg"] = "$(id) `whoami` \"x\"" });
+
+        // $, backtick and " are backslash-escaped in place; no new command runs.
+        Assert.Equal("git commit -m \"\\$(id) \\`whoami\\` \\\"x\\\"\"", command);
+    }
+
+    [Fact]
+    public void Interpolate_neutralizes_injection_inside_single_quotes()
+    {
+        var command = ShellEscaper.Interpolate(
+            "echo 'msg: {v}'",
+            new Dictionary<string, string> { ["v"] = "$(id)" });
+
+        // Inside single quotes everything is literal; the value stays as typed.
+        Assert.Equal("echo 'msg: $(id)'", command);
+    }
+
+    [Fact]
+    public void Interpolate_escapes_single_quote_that_would_break_out()
+    {
+        var command = ShellEscaper.Interpolate(
+            "echo '{v}'",
+            new Dictionary<string, string> { ["v"] = "a'; rm -rf /; '" });
+
+        // The embedded quote is rewritten as '\'' so it cannot terminate the string.
+        Assert.Equal("echo 'a'\\''; rm -rf /; '\\'''", command);
+    }
+
+    [Fact]
+    public void Interpolate_leaves_unknown_placeholders_untouched()
+    {
+        var command = ShellEscaper.Interpolate(
+            "echo {known} {unknown}",
+            new Dictionary<string, string> { ["known"] = "x" });
+
+        Assert.Equal("echo 'x' {unknown}", command);
     }
 
     [Fact]

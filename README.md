@@ -268,7 +268,7 @@ Common fields: `required` (no empty fallback), `default`, and `secret`. An inval
 
 Set `"secret": true` on an input to mark it sensitive: it is masked (`****`) while typing, never written to the input history (`~/.menuki/input_history`, which is created `0600`), and shown as `***` in any echoed or headless-returned command.
 
-> Every value substituted into a `command_template` is shell-quoted before it reaches the shell, so metacharacters like `$( )`, backticks, `;`, `&&` and `|` are treated as literal text, not executed. Write placeholders bare (`ssh deploy@{host}`), not pre-quoted (`"{host}"`).
+> Every value substituted into a `command_template` is escaped for the shell before it runs, so metacharacters like `$( )`, backticks, `;`, `&&` and `|` in a supplied value are treated as literal text, not executed. Escaping is aware of the placeholder's quoting context, so bare (`ssh deploy@{host}`), double-quoted (`git commit -m "{msg}"`) and single-quoted (`echo 'to {env}'`) placeholders are all safe.
 
 > Not yet typed: `file` / `directory` (path existence checks) - a planned follow-up.
 
