@@ -96,7 +96,7 @@ public class MenuEngine
         if (_addInfo != null && _addInfo.Count > 0)
         {
             Console.ForegroundColor = _theme.InfoBorder;
-            Console.WriteLine("-------- Data : --------");
+            Console.WriteLine("-------- Info --------");
 
             var maxLength = _addInfo.Select(x => x.Key).Max(x => x.Length);
 
@@ -119,7 +119,7 @@ public class MenuEngine
             }
 
             Console.ForegroundColor = _theme.InfoBorder;
-            Console.WriteLine("------------------------");
+            Console.WriteLine("----------------------");
         }
 
         if (_searchQuery.Length > 0)
