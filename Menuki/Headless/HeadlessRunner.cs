@@ -126,6 +126,7 @@ public static class HeadlessRunner
                     name = i.Name,
                     type = InputValidator.EffectiveType(i),
                     required = InputValidator.IsRequired(i),
+                    secret = i.Secret,
                     @default = i.Default,
                     options = i.Options,
                     min = i.Min,
@@ -207,17 +208,17 @@ public static class HeadlessRunner
         if (errors.Count > 0)
             return Fail(string.Join(" ", errors) + " Pass values with --param name=value.");
 
-        var command = a.CommandTemplate;
-        foreach (var kv in values)
-            command = command.Replace($"{{{kv.Key}}}", kv.Value);
+        var secretNames = a.Inputs.Where(i => i.Secret).Select(i => i.Name).ToHashSet();
+        var command = ShellEscaper.Interpolate(a.CommandTemplate, values);
+        var display = ShellEscaper.InterpolateForDisplay(a.CommandTemplate, values, secretNames);
 
-        return RunCommand(command);
+        return RunCommand(command, display);
     }
 
-    private static ExecOutcome RunCommand(string command)
+    private static ExecOutcome RunCommand(string command, string display)
     {
         var (exitCode, stdout, stderr) = ShellRunner.RunCaptured(command);
-        return new ExecOutcome(true, null, command, exitCode, stdout, stderr);
+        return new ExecOutcome(true, null, display, exitCode, stdout, stderr);
     }
 
     private static ExecOutcome Fail(string message) =>

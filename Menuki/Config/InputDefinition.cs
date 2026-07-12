@@ -35,6 +35,13 @@ public class InputDefinition
     [JsonPropertyName("required")]
     public bool Required { get; set; }
 
+    /// <summary>
+    /// When true, treat the value as sensitive: mask it while typing, never record it
+    /// in the input history, and show it as <c>***</c> in any echoed/logged command.
+    /// </summary>
+    [JsonPropertyName("secret")]
+    public bool Secret { get; set; }
+
     /// <summary>Allowed values for a <c>choice</c> input.</summary>
     [JsonPropertyName("options")]
     public List<string>? Options { get; set; }

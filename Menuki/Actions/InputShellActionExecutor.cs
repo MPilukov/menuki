@@ -28,12 +28,12 @@ public class InputShellActionExecutor : IActionExecutor
             values[input.Name] = value;
         }
 
-        var command = _commandTemplate;
-        foreach (var kv in values)
-            command = command.Replace($"{{{kv.Key}}}", kv.Value);
+        var secretNames = _inputs.Where(i => i.Secret).Select(i => i.Name).ToHashSet();
+        var command = ShellEscaper.Interpolate(_commandTemplate, values);
+        var display = ShellEscaper.InterpolateForDisplay(_commandTemplate, values, secretNames);
 
         Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine($"\n> {command}");
+        Console.WriteLine($"\n> {display}");
         Console.ForegroundColor = ConsoleColor.White;
         Console.WriteLine();
 
@@ -55,7 +55,8 @@ public class InputShellActionExecutor : IActionExecutor
     private static string PromptValue(InputDefinition input, List<string> history)
     {
         var hint = InputValidator.PromptHint(input);
-        var defaultHint = input.Default != null ? $" [{input.Default}]" : "";
+        // A secret must never be shown as a default; and its history is not recalled.
+        var defaultHint = !input.Secret && input.Default != null ? $" [{input.Default}]" : "";
 
         while (true)
         {
@@ -63,11 +64,15 @@ public class InputShellActionExecutor : IActionExecutor
             Console.Write($"{input.Prompt}{hint}{defaultHint}: ");
             Console.ForegroundColor = ConsoleColor.White;
 
-            var line = LineEditor.ReadLine(history);
+            // Secrets are masked while typing and never offered history recall.
+            var line = input.Secret
+                ? LineEditor.ReadLine(history: null, mask: true)
+                : LineEditor.ReadLine(history);
             var result = InputValidator.Resolve(input, line);
             if (result.Ok)
             {
-                InputHistory.Remember(history, line);
+                if (!input.Secret)
+                    InputHistory.Remember(history, line);
                 return result.Value;
             }
 

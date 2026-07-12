@@ -201,6 +201,10 @@
           "type": "boolean",
           "description": "When true, a value must be provided (no empty fallback)."
         },
+        "secret": {
+          "type": "boolean",
+          "description": "When true, the value is sensitive: masked while typing, never stored in input history, and shown as *** in echoed commands."
+        },
         "options": {
           "type": "array",
           "items": { "type": "string" },

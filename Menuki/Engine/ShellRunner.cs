@@ -7,17 +7,10 @@ public static class ShellRunner
 {
     public static string Run(string command)
     {
-        var (fileName, arguments) = GetShellCommand(command);
-
-        var psi = new ProcessStartInfo
-        {
-            FileName = fileName,
-            Arguments = arguments,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
+        var psi = ShellStart(command);
+        psi.RedirectStandardOutput = true;
+        psi.RedirectStandardError = true;
+        psi.CreateNoWindow = true;
 
         using var process = Process.Start(psi);
         if (process == null)
@@ -36,17 +29,10 @@ public static class ShellRunner
     /// </summary>
     public static (int ExitCode, string StdOut, string StdErr) RunCaptured(string command)
     {
-        var (fileName, arguments) = GetShellCommand(command);
-
-        var psi = new ProcessStartInfo
-        {
-            FileName = fileName,
-            Arguments = arguments,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
+        var psi = ShellStart(command);
+        psi.RedirectStandardOutput = true;
+        psi.RedirectStandardError = true;
+        psi.CreateNoWindow = true;
 
         using var process = Process.Start(psi);
         if (process == null)
@@ -66,14 +52,7 @@ public static class ShellRunner
     /// </summary>
     public static int RunInteractive(string command)
     {
-        var (fileName, arguments) = GetShellCommand(command);
-
-        var psi = new ProcessStartInfo
-        {
-            FileName = fileName,
-            Arguments = arguments,
-            UseShellExecute = false
-        };
+        var psi = ShellStart(command);
 
         using var process = Process.Start(psi);
         if (process == null)
@@ -90,26 +69,24 @@ public static class ShellRunner
     /// </summary>
     public static Process? StartBackground(string command, string logPath)
     {
-        string fileName, arguments;
+        ProcessStartInfo psi;
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            fileName = "cmd.exe";
-            arguments = $"/c {command} > \"{logPath}\" 2>&1";
+            psi = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = $"/c {command} > \"{logPath}\" 2>&1"
+            };
         }
         else
         {
-            fileName = "/bin/sh";
-            var inner = $"{command} > '{logPath}' 2>&1";
-            arguments = $"-c \"{inner.Replace("\"", "\\\"")}\"";
+            psi = new ProcessStartInfo { FileName = "/bin/sh" };
+            psi.ArgumentList.Add("-c");
+            psi.ArgumentList.Add($"{command} > '{logPath}' 2>&1");
         }
 
-        var psi = new ProcessStartInfo
-        {
-            FileName = fileName,
-            Arguments = arguments,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
+        psi.UseShellExecute = false;
+        psi.CreateNoWindow = true;
 
         return Process.Start(psi);
     }
@@ -124,10 +101,28 @@ public static class ShellRunner
             Process.Start("xdg-open", url);
     }
 
-    private static (string FileName, string Arguments) GetShellCommand(string command)
+    /// <summary>
+    /// Build a <see cref="ProcessStartInfo"/> that runs <paramref name="command"/> through
+    /// the platform shell. On POSIX the command is passed as a single, verbatim argv element
+    /// (<c>/bin/sh -c &lt;command&gt;</c>) via <see cref="ProcessStartInfo.ArgumentList"/>, so
+    /// there is no intermediate quoted string for the shell to re-parse. Interpolated values
+    /// must already be quoted with <see cref="ShellEscaper"/> before reaching here.
+    /// </summary>
+    private static ProcessStartInfo ShellStart(string command)
     {
+        ProcessStartInfo psi;
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            return ("cmd.exe", $"/c {command}");
-        return ("/bin/sh", $"-c \"{command.Replace("\"", "\\\"")}\"");
+        {
+            psi = new ProcessStartInfo { FileName = "cmd.exe", Arguments = $"/c {command}" };
+        }
+        else
+        {
+            psi = new ProcessStartInfo { FileName = "/bin/sh" };
+            psi.ArgumentList.Add("-c");
+            psi.ArgumentList.Add(command);
+        }
+
+        psi.UseShellExecute = false;
+        return psi;
     }
 }
