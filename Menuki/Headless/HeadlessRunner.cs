@@ -112,6 +112,7 @@ public static class HeadlessRunner
         ActionTypes.Delay => $"delay {a.Seconds ?? 0}s",
         ActionTypes.Background => "bg: " + (a.Command ?? ""),
         ActionTypes.Jobs => "background job manager",
+        ActionTypes.Settings => "appearance settings",
         ActionTypes.OpenConfig => "open config: " + a.Path,
         _ => ""
     };

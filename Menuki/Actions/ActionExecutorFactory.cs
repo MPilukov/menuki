@@ -65,6 +65,9 @@ public static class ActionExecutorFactory
         registry.Register(ActionTypes.OpenConfig, action =>
             new OpenConfigActionExecutor(
                 action.Path ?? throw new InvalidOperationException("OpenConfig action requires 'path'")));
+
+        registry.Register(ActionTypes.Settings, _ =>
+            new SettingsActionExecutor());
     }
 
     /// <summary>New registry with all built-ins and any DLL plugins loaded.</summary>

@@ -10,7 +10,11 @@ public class MenuEngine
     // Both prefixes are the same visual width so the item text stays aligned whether or
     // not a row is selected, and a repaint cleanly overwrites the marker with spaces.
     private static readonly string Prefix = "    ";
-    private static readonly string SelectedPrefix = "  ▶ "; // "  ▶ "
+    private static readonly string MarkerPrefix = "  ▶ "; // "  ▶ "
+
+    // The selected-row prefix depends on the user's preference: a "▶" marker (cursor
+    // hidden, marker is the cue) or plain indentation (cursor stays visible as the cue).
+    private static string SelectedPrefix => AppSettings.ShowSelectionMarker ? MarkerPrefix : Prefix;
 
     /// <summary>
     /// Show or hide the terminal cursor, ignoring platforms/streams that don't support it.
@@ -122,7 +126,9 @@ public class MenuEngine
 
         Console.ForegroundColor = _theme.Text;
         Console.Clear();
-        SetCursorVisible(false);
+        // With the marker on, the cursor is hidden so ▶ is the only cue; with it off, the
+        // cursor stays visible and marks the selected row itself.
+        SetCursorVisible(!AppSettings.ShowSelectionMarker);
 
         if (_addInfo != null && _addInfo.Count > 0)
         {

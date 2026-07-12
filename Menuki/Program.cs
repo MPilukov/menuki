@@ -32,6 +32,9 @@ class Program
         AppDomain.CurrentDomain.ProcessExit += (_, _) => { Engine.JobRegistry.StopAll(); Engine.MenuEngine.SetCursorVisible(true); };
         Console.CancelKeyPress += (_, _) => { Engine.JobRegistry.StopAll(); Engine.MenuEngine.SetCursorVisible(true); };
 
+        // Load the user's saved appearance preferences (theme, selection marker) up front.
+        Engine.AppSettings.Load();
+
         // `tour` subcommand: the guided, hands-on feature tour.
         if (args.Length > 0 && args[0] == "tour")
         {
@@ -70,6 +73,10 @@ class Program
             Console.WriteLine($"Start menu '{config.StartMenu}' not found in config.");
             Environment.Exit(1);
         }
+
+        // A config may declare appearance defaults; they apply only where the user
+        // has not already made a choice of their own.
+        Engine.AppSettings.ApplyConfigDefaults(config.Settings);
 
         var registry = ActionExecutorFactory.BuildDefault();
         var theme = new ThemeManager(config.Theme, config.Colors);

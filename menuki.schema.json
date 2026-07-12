@@ -22,11 +22,22 @@
     },
     "theme": {
       "type": "string",
-      "enum": ["dark", "light", "custom"],
-      "description": "Default color theme. 'custom' uses the 'colors' object."
+      "enum": ["dark", "light", "ocean", "forest", "matrix", "high-contrast", "synthwave", "custom"],
+      "description": "Default color theme. Press T at runtime to cycle themes; 'custom' uses the 'colors' object."
     },
     "colors": {
       "$ref": "#/definitions/colors"
+    },
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Appearance/behavior defaults. The user can override these at runtime; their choice is saved globally.",
+      "properties": {
+        "show_selection_marker": {
+          "type": "boolean",
+          "description": "Show the ▶ marker on the highlighted row (default true). Off = highlight by color only."
+        }
+      }
     },
     "editor": {
       "type": "string",
@@ -98,7 +109,7 @@
           "enum": [
             "shell", "submenu", "input+shell", "script",
             "open-url", "open-file", "open-config",
-            "sequence", "parallel", "delay", "background", "jobs", "exit"
+            "sequence", "parallel", "delay", "background", "jobs", "settings", "exit"
           ]
         },
         "command": { "type": "string", "description": "Shell command (for 'shell' and 'background')." },

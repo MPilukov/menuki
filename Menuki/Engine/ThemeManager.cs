@@ -1,50 +1,35 @@
-using System.Text.Json;
 using Menuki.Config;
 
 namespace Menuki.Engine;
 
+/// <summary>
+/// Resolves the active color palette and cycles through the available themes on the T key.
+/// The available set is the built-in <see cref="ThemeCatalog"/> palettes plus a "custom"
+/// entry when the config supplies its own <c>colors</c>. The user's pick persists globally
+/// via <see cref="AppSettings"/> and takes precedence over the config's declared theme.
+/// </summary>
 public class ThemeManager
 {
-    private static readonly string SettingsDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".menuki");
-    private static readonly string SettingsFile = Path.Combine(SettingsDir, "theme.json");
-
-    private static readonly ColorScheme DarkTheme = new()
-    {
-        Text = "White",
-        Selected = "DarkYellow",
-        Title = "Red",
-        InfoBorder = "Blue",
-        InfoLabel = "DarkCyan",
-        InfoValue = "Cyan",
-        Message = "Magenta"
-    };
-
-    private static readonly ColorScheme LightTheme = new()
-    {
-        Text = "Black",
-        Selected = "DarkBlue",
-        Title = "DarkRed",
-        InfoBorder = "DarkGray",
-        InfoLabel = "DarkGreen",
-        InfoValue = "DarkCyan",
-        Message = "DarkMagenta"
-    };
-
     private readonly ColorScheme? _configColors;
-    private readonly string _configThemeName;
+    private readonly List<string> _available;
     private string _activeThemeName;
 
     public ThemeManager(string? configTheme, ColorScheme? configColors)
     {
         _configColors = configColors;
-        _configThemeName = configTheme ?? "dark";
 
-        var saved = LoadSavedTheme();
-        _activeThemeName = saved ?? _configThemeName;
+        _available = new List<string>(ThemeCatalog.Names);
+        if (_configColors != null)
+            _available.Add(ThemeCatalog.Custom);
+
+        AppSettings.Load();
+        // Precedence: the user's saved choice, else the config's theme, else the default.
+        _activeThemeName = FirstValid(AppSettings.Theme, configTheme, "dark");
     }
 
     public ColorScheme Current => ResolveScheme(_activeThemeName);
+    public string ActiveThemeName => _activeThemeName;
+    public IReadOnlyList<string> AvailableThemes => _available;
 
     public ConsoleColor Text => Parse(Current.Text);
     public ConsoleColor Selected => Parse(Current.Selected);
@@ -54,28 +39,33 @@ public class ThemeManager
     public ConsoleColor InfoValue => Parse(Current.InfoValue);
     public ConsoleColor Message => Parse(Current.Message);
 
-    public string ActiveThemeName => _activeThemeName;
-
+    /// <summary>Advance to the next theme in the cycle and remember it.</summary>
     public void Toggle()
     {
-        _activeThemeName = _activeThemeName switch
-        {
-            "dark" => "light",
-            "light" => _configColors != null ? "custom" : "dark",
-            "custom" => "dark",
-            _ => "dark"
-        };
-        SaveTheme(_activeThemeName);
+        _activeThemeName = ThemeCatalog.Next(_activeThemeName, _available);
+        AppSettings.SetTheme(_activeThemeName);
     }
 
-    private ColorScheme ResolveScheme(string name)
+    /// <summary>Set a specific theme by name (ignored if not available) and remember it.</summary>
+    public void SetTheme(string name)
     {
-        return name switch
-        {
-            "light" => MergeWithDefaults(null, LightTheme),
-            "custom" => MergeWithDefaults(_configColors, DarkTheme),
-            _ => MergeWithDefaults(null, DarkTheme)
-        };
+        if (!_available.Contains(name, StringComparer.OrdinalIgnoreCase))
+            return;
+        _activeThemeName = name;
+        AppSettings.SetTheme(_activeThemeName);
+    }
+
+    private ColorScheme ResolveScheme(string name) =>
+        string.Equals(name, ThemeCatalog.Custom, StringComparison.OrdinalIgnoreCase)
+            ? MergeWithDefaults(_configColors, ThemeCatalog.Get("dark"))
+            : ThemeCatalog.Get(name);
+
+    private string FirstValid(params string?[] candidates)
+    {
+        foreach (var c in candidates)
+            if (!string.IsNullOrEmpty(c) && _available.Contains(c, StringComparer.OrdinalIgnoreCase))
+                return c!;
+        return _available.Count > 0 ? _available[0] : "dark";
     }
 
     private static ColorScheme MergeWithDefaults(ColorScheme? overrides, ColorScheme defaults)
@@ -95,40 +85,6 @@ public class ThemeManager
         };
     }
 
-    private static ConsoleColor Parse(string colorName)
-    {
-        if (Enum.TryParse<ConsoleColor>(colorName, ignoreCase: true, out var color))
-            return color;
-        return ConsoleColor.Gray;
-    }
-
-    private static string? LoadSavedTheme()
-    {
-        try
-        {
-            if (!File.Exists(SettingsFile))
-                return null;
-            var json = File.ReadAllText(SettingsFile);
-            var doc = JsonDocument.Parse(json);
-            return doc.RootElement.GetProperty("theme").GetString();
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    private static void SaveTheme(string themeName)
-    {
-        try
-        {
-            Directory.CreateDirectory(SettingsDir);
-            var json = JsonSerializer.Serialize(new { theme = themeName });
-            File.WriteAllText(SettingsFile, json);
-        }
-        catch
-        {
-            // ignore write errors
-        }
-    }
+    private static ConsoleColor Parse(string colorName) =>
+        Enum.TryParse<ConsoleColor>(colorName, ignoreCase: true, out var color) ? color : ConsoleColor.Gray;
 }

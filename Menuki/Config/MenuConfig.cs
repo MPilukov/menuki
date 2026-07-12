@@ -20,6 +20,10 @@ public class MenuConfig
     [JsonPropertyName("colors")]
     public ColorScheme? Colors { get; set; }
 
+    /// <summary>Optional appearance/behavior defaults (e.g. whether to show the selection marker).</summary>
+    [JsonPropertyName("settings")]
+    public ConfigSettings? Settings { get; set; }
+
     /// <summary>
     /// Editor command used by the E (Edit JSON) key, e.g. "subl -w", "code --wait",
     /// "nano", "vim". Overrides $VISUAL / $EDITOR. GUI editors get a --wait flag
