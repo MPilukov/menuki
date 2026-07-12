@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json;
 using Menuki.Actions;
 using Menuki.Config;
@@ -12,6 +13,18 @@ class Program
 {
     static void Main(string[] args)
     {
+        // Non-interactive info flags come first, so `menuki --help` never opens the TUI.
+        if (args.Contains("--version") || args.Contains("-v"))
+        {
+            Console.WriteLine($"menuki {Version()}");
+            Environment.Exit(0);
+        }
+        if (args.Contains("--help") || args.Contains("-h") || (args.Length > 0 && args[0] == "help"))
+        {
+            PrintHelp();
+            Environment.Exit(0);
+        }
+
         // Non-interactive, agent-facing paths: these emit JSON / speak JSON-RPC and
         // exit without ever touching the interactive TUI.
         if (Headless.HeadlessCli.IsHeadlessCommand(args))
@@ -89,6 +102,49 @@ class Program
 
         Console.Title = config.Title;
         Navigator.Run(config, theme, configPath!, registry);
+    }
+
+    /// <summary>Version string, from the assembly's informational version (tag-injected in releases).</summary>
+    private static string Version()
+    {
+        var info = typeof(Program).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        var v = string.IsNullOrEmpty(info)
+            ? typeof(Program).Assembly.GetName().Version?.ToString() ?? "unknown"
+            : info;
+        var plus = v.IndexOf('+'); // drop source-revision build metadata
+        return plus >= 0 ? v[..plus] : v;
+    }
+
+    private static void PrintHelp()
+    {
+        Console.WriteLine($"""
+            menuki {Version()} - interactive terminal menus and runbooks from a single JSON file
+
+            Usage:
+              menuki                            Welcome screen (interactive)
+              menuki tour                       Guided, hands-on feature tour
+              menuki examples [name]            List, or run a built-in example pack
+              menuki --config <path>            Run a menu config (interactive)
+
+            Headless (JSON in, JSON out):
+              menuki list --config <path>                       Catalog of runnable actions
+              menuki exec --config <path> --action <id> [--param k=v ...]
+              menuki validate --config <path>                   Check a config
+
+            Example packs:
+              menuki examples                   List the bundled packs
+              menuki examples <name>            Run one
+              menuki examples <name> --save [path]   Copy its JSON to a file
+              menuki examples <name> --print    Print its JSON to stdout
+
+            Other:
+              menuki mcp                        Run the MCP server (stdio)
+              menuki --version, -v              Print the version
+              menuki --help, -h, help           Show this help
+
+            Docs: https://github.com/MPilukov/menuki
+            """);
     }
 
     private static string? GetConfigPath(string[] args)
