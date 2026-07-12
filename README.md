@@ -67,8 +67,28 @@ dotnet run --project Menuki -- --config Menuki/examples/dev-runbook.json
 
 ## Install
 
-Install a single self-contained `menuki` binary onto your PATH (bundles the
-.NET runtime - end users don't need .NET installed):
+Menuki ships as a single self-contained binary (the .NET runtime is bundled, so
+there is nothing else to install).
+
+**Homebrew** (macOS / Linux):
+
+```bash
+brew install MPilukov/menuki/menuki
+```
+
+**curl | sh** (macOS / Linux) - downloads the latest release binary:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/MPilukov/menuki/main/install.sh | sh
+```
+
+Installs to `~/.local/bin` by default; set `PREFIX=/usr/local/bin` to change it, or
+`MENUKI_VERSION=vX.Y.Z` to pin a version.
+
+**Manual** - grab a binary from the [Releases page](https://github.com/MPilukov/menuki/releases)
+(`menuki-win-x64.zip` for Windows), unpack, and put it on your PATH.
+
+**From source** (needs .NET 8):
 
 ```bash
 ./scripts/install.sh                    # builds for this machine, installs to ~/.local/bin
