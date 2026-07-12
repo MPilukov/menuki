@@ -264,9 +264,13 @@ At any text prompt, **Up / Down** recalls previously entered values (a shared hi
 | `boolean` | - | Accepts yes/no/true/false/1/0; normalized to `true` / `false` |
 | `date` | `format?` | Parsed with `format` (default `yyyy-MM-dd`) and normalized |
 
-Common fields: `required` (no empty fallback) and `default`. An invalid value is rejected with a clear message - headless returns `{ "ok": false, "error": "Invalid value 'prod' for parameter 'environment'. Allowed values: staging, production." }`. Bad specs (a `choice` with no `options`, `min > max`, a default that fails its own type) are caught by `validate_menu`. See `examples/typed-inputs-demo.json`.
+Common fields: `required` (no empty fallback), `default`, and `secret`. An invalid value is rejected with a clear message - headless returns `{ "ok": false, "error": "Invalid value 'prod' for parameter 'environment'. Allowed values: staging, production." }`. Bad specs (a `choice` with no `options`, `min > max`, a default that fails its own type) are caught by `validate_menu`. See `examples/typed-inputs-demo.json`.
 
-> Not yet typed: `secret` (needs redaction across logs/output) and `file` / `directory` (path checks + escaping) - planned follow-ups.
+Set `"secret": true` on an input to mark it sensitive: it is masked (`****`) while typing, never written to the input history (`~/.menuki/input_history`, which is created `0600`), and shown as `***` in any echoed or headless-returned command.
+
+> Every value substituted into a `command_template` is escaped for the shell before it runs, so metacharacters like `$( )`, backticks, `;`, `&&` and `|` in a supplied value are treated as literal text, not executed. Escaping is aware of the placeholder's quoting context, so bare (`ssh deploy@{host}`), double-quoted (`git commit -m "{msg}"`) and single-quoted (`echo 'to {env}'`) placeholders are all safe.
+
+> Not yet typed: `file` / `directory` (path existence checks) - a planned follow-up.
 
 **open-file** - open a file in the OS default app or a specific editor:
 ```json

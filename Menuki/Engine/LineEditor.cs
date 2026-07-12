@@ -10,7 +10,7 @@ namespace Menuki.Engine;
 /// </summary>
 public static class LineEditor
 {
-    public static string ReadLine(IReadOnlyList<string>? history = null)
+    public static string ReadLine(IReadOnlyList<string>? history = null, bool mask = false)
     {
         history ??= Array.Empty<string>();
 
@@ -25,7 +25,7 @@ public static class LineEditor
 
         void Redraw()
         {
-            var text = buffer.ToString();
+            var text = mask ? new string('*', buffer.Length) : buffer.ToString();
             SafeSetCursor(startLeft, startTop);
             Console.Write(text);
             if (prevLen > text.Length)

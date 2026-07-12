@@ -89,6 +89,49 @@ public class HeadlessRunnerTests
     }
 
     [Fact]
+    public void InputShell_does_not_evaluate_injected_command_substitution()
+    {
+        var action = new ActionDefinition
+        {
+            Type = ActionTypes.InputShell,
+            CommandTemplate = "echo {msg}",
+            Inputs = new() { new InputDefinition { Name = "msg", Prompt = "Msg" } }
+        };
+        var config = Config(Item("say", action));
+        var found = HeadlessRunner.Find(config, "main/say")!;
+
+        var outcome = HeadlessRunner.Execute(found,
+            new Dictionary<string, string> { ["msg"] = "$(echo pwned)" });
+
+        Assert.True(outcome.Ok);
+        // The value is echoed verbatim; the subshell must NOT have run.
+        Assert.Equal("$(echo pwned)", outcome.StdOut);
+        Assert.DoesNotContain("pwned\n", outcome.StdOut);
+    }
+
+    [Fact]
+    public void InputShell_masks_secret_in_returned_command()
+    {
+        var action = new ActionDefinition
+        {
+            Type = ActionTypes.InputShell,
+            CommandTemplate = "echo {token}",
+            Inputs = new() { new InputDefinition { Name = "token", Prompt = "Token", Secret = true } }
+        };
+        var config = Config(Item("auth", action));
+        var found = HeadlessRunner.Find(config, "main/auth")!;
+
+        var outcome = HeadlessRunner.Execute(found,
+            new Dictionary<string, string> { ["token"] = "super-secret" });
+
+        Assert.True(outcome.Ok);
+        Assert.Contains("***", outcome.Command);
+        Assert.DoesNotContain("super-secret", outcome.Command);
+        // The real value still reached the shell.
+        Assert.Equal("super-secret", outcome.StdOut);
+    }
+
+    [Fact]
     public void Catalog_exposes_typed_input_contract()
     {
         var action = new ActionDefinition
