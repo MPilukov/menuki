@@ -100,6 +100,8 @@ Then:
 
 ```bash
 menuki                                    # welcome screen
+menuki --help                             # commands and flags
+menuki --version                          # print the version
 menuki tour                               # guided feature tour
 menuki examples                           # list the built-in example packs
 menuki examples git                       # run a bundled example

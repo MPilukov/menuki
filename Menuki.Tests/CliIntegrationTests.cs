@@ -95,6 +95,28 @@ public class CliIntegrationTests
         Assert.NotEmpty(doc.RootElement.GetProperty("errors").EnumerateArray());
     }
 
+    [Theory]
+    [InlineData("--version")]
+    [InlineData("-v")]
+    public void Version_flag_prints_and_exits_zero(string flag)
+    {
+        var (exit, output) = RunCli(flag);
+        Assert.Equal(0, exit);
+        Assert.StartsWith("menuki ", output.Trim());
+    }
+
+    [Theory]
+    [InlineData("--help")]
+    [InlineData("-h")]
+    [InlineData("help")]
+    public void Help_flag_prints_usage_and_exits_zero(string arg)
+    {
+        var (exit, output) = RunCli(arg);
+        Assert.Equal(0, exit);
+        Assert.Contains("Usage:", output);
+        Assert.Contains("menuki examples", output);
+    }
+
     // --- harness --------------------------------------------------------
 
     private static (int Exit, string Output) RunCli(params string[] args)
