@@ -1,0 +1,41 @@
+{
+  "title": "CI Pipeline",
+  "start_menu": "main",
+  "menus": {
+    "main": {
+      "title": "Build & Release",
+      "info": [
+        { "label": "Repo", "command": "basename $(pwd)" }
+      ],
+      "items": [
+        {
+          "name": "Full build (test → publish)",
+          "action": {
+            "type": "sequence",
+            "stop_on_error": true,
+            "on_success": { "type": "shell", "command": "echo '✓ build succeeded'" },
+            "on_failure": { "type": "shell", "command": "echo '✗ build failed'" },
+            "steps": [
+              { "id": "restore", "type": "shell", "command": "dotnet restore", "retry": 2, "retry_delay": 3 },
+              { "id": "test", "type": "shell", "command": "dotnet test" },
+              { "id": "publish", "type": "shell", "command": "dotnet publish -c Release" }
+            ]
+          }
+        },
+        {
+          "name": "Quick check with pause",
+          "action": {
+            "type": "sequence",
+            "stop_on_error": false,
+            "steps": [
+              { "type": "shell", "command": "dotnet build" },
+              { "type": "delay", "seconds": 1 },
+              { "type": "shell", "command": "echo build step done" }
+            ]
+          }
+        },
+        { "name": "Exit", "action": { "type": "exit" } }
+      ]
+    }
+  }
+}

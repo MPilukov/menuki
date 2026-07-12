@@ -1,0 +1,78 @@
+{
+  "title": "Menuki - Onboarding Demo",
+  "start_menu": "welcome",
+  "theme": "custom",
+  "colors": {
+    "text": "Gray",
+    "selected": "Black",
+    "title": "Cyan",
+    "info_border": "DarkCyan",
+    "info_label": "DarkCyan",
+    "info_value": "White",
+    "message": "Green"
+  },
+  "menus": {
+    "welcome": {
+      "title": "Welcome aboard!",
+      "info": [
+        { "label": "User", "command": "whoami" },
+        { "label": "Machine", "command": "hostname" },
+        { "label": "OS", "command": "uname -sr" },
+        { "label": "Date", "command": "date \"+%Y-%m-%d %H:%M\"" }
+      ],
+      "items": [
+        { "name": "Introduce yourself", "action": {
+            "type": "input+shell",
+            "inputs": [ { "name": "name", "prompt": "What's your name", "default": "friend" } ],
+            "command_template": "echo \"Nice to meet you, {name}! Let's get you set up.\""
+        } },
+        { "name": "Choose your environment", "action": { "type": "submenu", "menu": "environment" } },
+        { "name": "Pick your favorite tool", "action": { "type": "submenu", "menu": "tools" } },
+        { "name": "Run a quick system check", "action": { "type": "submenu", "menu": "checks" } },
+        { "name": "Finish", "action": { "type": "exit" } }
+      ]
+    },
+    "environment": {
+      "title": "Which environment are you working in?",
+      "info": [
+        { "label": "Tip", "value": "Use Up/Down + Enter. X or Esc goes back." }
+      ],
+      "items": [
+        { "name": "Development", "action": { "type": "shell", "command": "echo \"Selected: DEVELOPMENT - safe to experiment.\"" } },
+        { "name": "Staging", "action": { "type": "shell", "command": "echo \"Selected: STAGING - mirrors production.\"" } },
+        { "name": "Production", "action": { "type": "shell", "command": "echo \"Selected: PRODUCTION - handle with care!\"" } },
+        { "name": "Custom (type it in)", "action": {
+            "type": "input+shell",
+            "inputs": [ { "name": "env", "prompt": "Environment name", "default": "local" } ],
+            "command_template": "echo \"Selected custom environment: {env}\""
+        } }
+      ]
+    },
+    "tools": {
+      "title": "Pick your favorite tool",
+      "items": [
+        { "name": "Git - version control", "action": { "type": "shell", "command": "git --version 2>/dev/null || echo 'git not installed'" } },
+        { "name": "Docker - containers", "action": { "type": "shell", "command": "docker --version 2>/dev/null || echo 'docker not installed'" } },
+        { "name": "Node - JavaScript runtime", "action": { "type": "shell", "command": "node --version 2>/dev/null || echo 'node not installed'" } },
+        { "name": "Python", "action": { "type": "shell", "command": "python3 --version 2>/dev/null || echo 'python3 not installed'" } },
+        { "name": ".NET SDK", "action": { "type": "shell", "command": "dotnet --version 2>/dev/null || echo 'dotnet not installed'" } }
+      ]
+    },
+    "checks": {
+      "title": "Quick system check",
+      "info": [
+        { "label": "Uptime", "command": "uptime | sed 's/^ *//'" }
+      ],
+      "items": [
+        { "name": "Disk usage", "action": { "type": "shell", "command": "df -h / | tail -1" } },
+        { "name": "Current directory", "action": { "type": "shell", "command": "pwd && ls -la | head -15" } },
+        { "name": "Network - ping Google", "action": { "type": "shell", "command": "ping -c 3 8.8.8.8" } },
+        { "name": "Greet by name again", "action": {
+            "type": "input+shell",
+            "inputs": [ { "name": "who", "prompt": "Who are we greeting", "default": "world" } ],
+            "command_template": "echo \"Hello, {who}! All checks done.\""
+        } }
+      ]
+    }
+  }
+}

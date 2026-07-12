@@ -1,0 +1,514 @@
+{
+  "title": "Kubernetes Manager",
+  "start_menu": "main",
+  "menus": {
+    "main": {
+      "title": "Kubernetes",
+      "info": [
+        {
+          "label": "Current Context",
+          "command": "kubectl config current-context 2>/dev/null || echo 'not configured'"
+        },
+        {
+          "label": "Current Namespace",
+          "command": "kubectl config view --minify -o jsonpath='{.contexts[0].context.namespace}' 2>/dev/null || echo 'default'"
+        },
+        {
+          "label": "Cluster",
+          "command": "kubectl config view --minify -o jsonpath='{.clusters[0].name}' 2>/dev/null || echo 'N/A'"
+        }
+      ],
+      "items": [
+        {
+          "name": "Workloads",
+          "action": {
+            "type": "submenu",
+            "menu": "workloads"
+          }
+        },
+        {
+          "name": "Services & Networking",
+          "action": {
+            "type": "submenu",
+            "menu": "networking"
+          }
+        },
+        {
+          "name": "Config & Storage",
+          "action": {
+            "type": "submenu",
+            "menu": "config-storage"
+          }
+        },
+        {
+          "name": "Cluster",
+          "action": {
+            "type": "submenu",
+            "menu": "cluster"
+          }
+        },
+        {
+          "name": "Troubleshooting",
+          "action": {
+            "type": "submenu",
+            "menu": "troubleshooting"
+          }
+        },
+        {
+          "name": "Switch context",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "ctx",
+                "prompt": "Context name"
+              }
+            ],
+            "command_template": "kubectl config use-context {ctx}"
+          }
+        },
+        {
+          "name": "Switch namespace",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "ns",
+                "prompt": "Namespace",
+                "default": "default"
+              }
+            ],
+            "command_template": "kubectl config set-context --current --namespace={ns}"
+          }
+        },
+        {
+          "name": "Exit",
+          "action": {
+            "type": "exit"
+          }
+        }
+      ]
+    },
+    "workloads": {
+      "title": "Workloads",
+      "items": [
+        {
+          "name": "List pods",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get pods -o wide"
+          }
+        },
+        {
+          "name": "List pods (all namespaces)",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get pods --all-namespaces -o wide"
+          }
+        },
+        {
+          "name": "List deployments",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get deployments -o wide"
+          }
+        },
+        {
+          "name": "List statefulsets",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get statefulsets"
+          }
+        },
+        {
+          "name": "List daemonsets",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get daemonsets"
+          }
+        },
+        {
+          "name": "List jobs",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get jobs"
+          }
+        },
+        {
+          "name": "List cronjobs",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get cronjobs"
+          }
+        },
+        {
+          "name": "Describe pod",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "pod",
+                "prompt": "Pod name"
+              }
+            ],
+            "command_template": "kubectl describe pod {pod}"
+          }
+        },
+        {
+          "name": "Scale deployment",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "deploy",
+                "prompt": "Deployment name"
+              },
+              {
+                "name": "replicas",
+                "prompt": "Number of replicas"
+              }
+            ],
+            "command_template": "kubectl scale deployment {deploy} --replicas={replicas}"
+          }
+        },
+        {
+          "name": "Restart deployment",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "deploy",
+                "prompt": "Deployment name"
+              }
+            ],
+            "command_template": "kubectl rollout restart deployment {deploy}"
+          }
+        },
+        {
+          "name": "Rollout status",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "deploy",
+                "prompt": "Deployment name"
+              }
+            ],
+            "command_template": "kubectl rollout status deployment {deploy}"
+          }
+        },
+        {
+          "name": "Rollout history",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "deploy",
+                "prompt": "Deployment name"
+              }
+            ],
+            "command_template": "kubectl rollout history deployment {deploy}"
+          }
+        }
+      ]
+    },
+    "networking": {
+      "title": "Services & Networking",
+      "items": [
+        {
+          "name": "List services",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get svc -o wide"
+          }
+        },
+        {
+          "name": "List ingresses",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get ingress"
+          }
+        },
+        {
+          "name": "List endpoints",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get endpoints"
+          }
+        },
+        {
+          "name": "Describe service",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "svc",
+                "prompt": "Service name"
+              }
+            ],
+            "command_template": "kubectl describe svc {svc}"
+          }
+        },
+        {
+          "name": "Port-forward to service",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "svc",
+                "prompt": "Service name"
+              },
+              {
+                "name": "ports",
+                "prompt": "Port mapping (local:remote)",
+                "default": "8080:80"
+              }
+            ],
+            "command_template": "kubectl port-forward svc/{svc} {ports}"
+          }
+        },
+        {
+          "name": "Port-forward to pod",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "pod",
+                "prompt": "Pod name"
+              },
+              {
+                "name": "ports",
+                "prompt": "Port mapping (local:remote)",
+                "default": "8080:80"
+              }
+            ],
+            "command_template": "kubectl port-forward {pod} {ports}"
+          }
+        }
+      ]
+    },
+    "config-storage": {
+      "title": "Config & Storage",
+      "items": [
+        {
+          "name": "List configmaps",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get configmaps"
+          }
+        },
+        {
+          "name": "List secrets",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get secrets"
+          }
+        },
+        {
+          "name": "List PVCs",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get pvc"
+          }
+        },
+        {
+          "name": "List PVs",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get pv"
+          }
+        },
+        {
+          "name": "View configmap",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "cm",
+                "prompt": "ConfigMap name"
+              }
+            ],
+            "command_template": "kubectl describe configmap {cm}"
+          }
+        },
+        {
+          "name": "View secret (decoded)",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "secret",
+                "prompt": "Secret name"
+              }
+            ],
+            "command_template": "kubectl get secret {secret} -o jsonpath='{.data}' | python3 -c \"import sys,json,base64; d=json.loads(sys.stdin.read()); [print(f'{k}: {base64.b64decode(v).decode()}') for k,v in d.items()]\""
+          }
+        }
+      ]
+    },
+    "cluster": {
+      "title": "Cluster",
+      "items": [
+        {
+          "name": "Cluster info",
+          "action": {
+            "type": "shell",
+            "command": "kubectl cluster-info"
+          }
+        },
+        {
+          "name": "List nodes",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get nodes -o wide"
+          }
+        },
+        {
+          "name": "List namespaces",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get namespaces"
+          }
+        },
+        {
+          "name": "List all contexts",
+          "action": {
+            "type": "shell",
+            "command": "kubectl config get-contexts"
+          }
+        },
+        {
+          "name": "Node resource usage",
+          "action": {
+            "type": "shell",
+            "command": "kubectl top nodes 2>/dev/null || echo 'Metrics server not installed'"
+          }
+        },
+        {
+          "name": "Pod resource usage",
+          "action": {
+            "type": "shell",
+            "command": "kubectl top pods 2>/dev/null || echo 'Metrics server not installed'"
+          }
+        },
+        {
+          "name": "List all resources in namespace",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "ns",
+                "prompt": "Namespace",
+                "default": "default"
+              }
+            ],
+            "command_template": "kubectl get all -n {ns}"
+          }
+        }
+      ]
+    },
+    "troubleshooting": {
+      "title": "Troubleshooting",
+      "items": [
+        {
+          "name": "Pod logs",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "pod",
+                "prompt": "Pod name"
+              },
+              {
+                "name": "lines",
+                "prompt": "Number of lines",
+                "default": "100"
+              }
+            ],
+            "command_template": "kubectl logs --tail={lines} {pod}"
+          }
+        },
+        {
+          "name": "Follow pod logs",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "pod",
+                "prompt": "Pod name"
+              }
+            ],
+            "command_template": "kubectl logs -f --tail=50 {pod}"
+          }
+        },
+        {
+          "name": "Previous pod logs (crashed)",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "pod",
+                "prompt": "Pod name"
+              }
+            ],
+            "command_template": "kubectl logs --previous {pod}"
+          }
+        },
+        {
+          "name": "Exec into pod",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "pod",
+                "prompt": "Pod name"
+              }
+            ],
+            "command_template": "kubectl exec -it {pod} -- bash || kubectl exec -it {pod} -- sh"
+          }
+        },
+        {
+          "name": "Get events",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get events --sort-by='.lastTimestamp' | tail -30"
+          }
+        },
+        {
+          "name": "Get failed pods",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get pods --field-selector=status.phase!=Running,status.phase!=Succeeded"
+          }
+        },
+        {
+          "name": "Describe node",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "node",
+                "prompt": "Node name"
+              }
+            ],
+            "command_template": "kubectl describe node {node}"
+          }
+        },
+        {
+          "name": "Run debug pod",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "Debug pod name",
+                "default": "debug"
+              }
+            ],
+            "command_template": "kubectl run {name} --rm -it --image=busybox -- sh"
+          }
+        }
+      ]
+    }
+  }
+}

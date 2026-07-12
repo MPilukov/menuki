@@ -1,0 +1,374 @@
+{
+  "title": "NPM & Frontend Dev",
+  "start_menu": "main",
+  "menus": {
+    "main": {
+      "title": "Frontend Dev",
+      "info": [
+        {
+          "label": "Node",
+          "command": "node --version 2>/dev/null || echo 'not installed'"
+        },
+        {
+          "label": "npm",
+          "command": "npm --version 2>/dev/null || echo 'N/A'"
+        },
+        {
+          "label": "Project",
+          "command": "cat package.json 2>/dev/null | grep '\"name\"' | head -1 | sed 's/.*: \"//;s/\".*//' || echo 'no package.json'"
+        }
+      ],
+      "items": [
+        {
+          "name": "NPM Scripts",
+          "action": {
+            "type": "submenu",
+            "menu": "scripts"
+          }
+        },
+        {
+          "name": "Dependencies",
+          "action": {
+            "type": "submenu",
+            "menu": "deps"
+          }
+        },
+        {
+          "name": "Project",
+          "action": {
+            "type": "submenu",
+            "menu": "project"
+          }
+        },
+        {
+          "name": "Testing",
+          "action": {
+            "type": "submenu",
+            "menu": "testing"
+          }
+        },
+        {
+          "name": "Build & Deploy",
+          "action": {
+            "type": "submenu",
+            "menu": "build"
+          }
+        },
+        {
+          "name": "Exit",
+          "action": {
+            "type": "exit"
+          }
+        }
+      ]
+    },
+    "scripts": {
+      "title": "NPM Scripts",
+      "items": [
+        {
+          "name": "List available scripts",
+          "action": {
+            "type": "shell",
+            "command": "cat package.json 2>/dev/null | grep -A 100 '\"scripts\"' | grep -B 100 '}' | head -30 || echo 'No package.json found'"
+          }
+        },
+        {
+          "name": "npm start",
+          "action": {
+            "type": "shell",
+            "command": "npm start"
+          }
+        },
+        {
+          "name": "npm run dev",
+          "action": {
+            "type": "shell",
+            "command": "npm run dev"
+          }
+        },
+        {
+          "name": "npm run build",
+          "action": {
+            "type": "shell",
+            "command": "npm run build"
+          }
+        },
+        {
+          "name": "npm test",
+          "action": {
+            "type": "shell",
+            "command": "npm test"
+          }
+        },
+        {
+          "name": "npm run lint",
+          "action": {
+            "type": "shell",
+            "command": "npm run lint"
+          }
+        },
+        {
+          "name": "Run custom script",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "script",
+                "prompt": "Script name"
+              }
+            ],
+            "command_template": "npm run {script}"
+          }
+        }
+      ]
+    },
+    "deps": {
+      "title": "Dependencies",
+      "items": [
+        {
+          "name": "Install all (npm install)",
+          "action": {
+            "type": "shell",
+            "command": "npm install"
+          }
+        },
+        {
+          "name": "Clean install (npm ci)",
+          "action": {
+            "type": "shell",
+            "command": "npm ci"
+          }
+        },
+        {
+          "name": "Add dependency",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "pkg",
+                "prompt": "Package name"
+              }
+            ],
+            "command_template": "npm install {pkg}"
+          }
+        },
+        {
+          "name": "Add dev dependency",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "pkg",
+                "prompt": "Package name"
+              }
+            ],
+            "command_template": "npm install -D {pkg}"
+          }
+        },
+        {
+          "name": "Remove dependency",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "pkg",
+                "prompt": "Package name"
+              }
+            ],
+            "command_template": "npm uninstall {pkg}"
+          }
+        },
+        {
+          "name": "Check outdated",
+          "action": {
+            "type": "shell",
+            "command": "npm outdated"
+          }
+        },
+        {
+          "name": "Update all",
+          "action": {
+            "type": "shell",
+            "command": "npm update"
+          }
+        },
+        {
+          "name": "Audit vulnerabilities",
+          "action": {
+            "type": "shell",
+            "command": "npm audit"
+          }
+        },
+        {
+          "name": "Fix audit issues",
+          "action": {
+            "type": "shell",
+            "command": "npm audit fix"
+          }
+        },
+        {
+          "name": "List installed (top level)",
+          "action": {
+            "type": "shell",
+            "command": "npm list --depth=0"
+          }
+        }
+      ]
+    },
+    "project": {
+      "title": "Project",
+      "items": [
+        {
+          "name": "Init new project",
+          "action": {
+            "type": "shell",
+            "command": "npm init -y"
+          }
+        },
+        {
+          "name": "View package.json",
+          "action": {
+            "type": "shell",
+            "command": "cat package.json"
+          }
+        },
+        {
+          "name": "Open package.json in editor",
+          "action": {
+            "type": "open-file",
+            "path": "package.json",
+            "editor": "code"
+          }
+        },
+        {
+          "name": "Check node_modules size",
+          "action": {
+            "type": "shell",
+            "command": "du -sh node_modules 2>/dev/null || echo 'no node_modules'"
+          }
+        },
+        {
+          "name": "Clean node_modules",
+          "action": {
+            "type": "shell",
+            "command": "rm -rf node_modules && echo 'node_modules removed'"
+          }
+        },
+        {
+          "name": "Clean & reinstall",
+          "action": {
+            "type": "shell",
+            "command": "rm -rf node_modules package-lock.json && npm install && echo 'Clean install complete'"
+          }
+        }
+      ]
+    },
+    "testing": {
+      "title": "Testing",
+      "items": [
+        {
+          "name": "Run all tests",
+          "action": {
+            "type": "shell",
+            "command": "npm test"
+          }
+        },
+        {
+          "name": "Run tests (watch mode)",
+          "action": {
+            "type": "shell",
+            "command": "npm test -- --watch"
+          }
+        },
+        {
+          "name": "Run tests with coverage",
+          "action": {
+            "type": "shell",
+            "command": "npm test -- --coverage"
+          }
+        },
+        {
+          "name": "Run specific test file",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "file",
+                "prompt": "Test file path"
+              }
+            ],
+            "command_template": "npm test -- {file}"
+          }
+        },
+        {
+          "name": "Run e2e tests",
+          "action": {
+            "type": "shell",
+            "command": "npm run test:e2e 2>/dev/null || npm run e2e 2>/dev/null || echo 'No e2e script found'"
+          }
+        }
+      ]
+    },
+    "build": {
+      "title": "Build & Deploy",
+      "items": [
+        {
+          "name": "Build production",
+          "action": {
+            "type": "shell",
+            "command": "npm run build"
+          }
+        },
+        {
+          "name": "Build & analyze size",
+          "action": {
+            "type": "shell",
+            "command": "npm run build && du -sh dist build out .next 2>/dev/null"
+          }
+        },
+        {
+          "name": "Preview production build",
+          "action": {
+            "type": "shell",
+            "command": "npm run preview 2>/dev/null || npx serve dist 2>/dev/null || npx serve build 2>/dev/null || echo 'No preview command available'"
+          }
+        },
+        {
+          "name": "Publish to npm",
+          "action": {
+            "type": "shell",
+            "command": "npm publish"
+          }
+        },
+        {
+          "name": "Dry-run publish",
+          "action": {
+            "type": "shell",
+            "command": "npm publish --dry-run"
+          }
+        },
+        {
+          "name": "Bump version (patch)",
+          "action": {
+            "type": "shell",
+            "command": "npm version patch"
+          }
+        },
+        {
+          "name": "Bump version (minor)",
+          "action": {
+            "type": "shell",
+            "command": "npm version minor"
+          }
+        },
+        {
+          "name": "Bump version (major)",
+          "action": {
+            "type": "shell",
+            "command": "npm version major"
+          }
+        }
+      ]
+    }
+  }
+}

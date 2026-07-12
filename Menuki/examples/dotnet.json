@@ -1,0 +1,477 @@
+{
+  "title": ".NET Developer",
+  "start_menu": "main",
+  "menus": {
+    "main": {
+      "title": ".NET Developer",
+      "info": [
+        {
+          "label": "SDK",
+          "command": "dotnet --version 2>/dev/null || echo 'not installed'"
+        },
+        {
+          "label": "Runtime",
+          "command": "dotnet --list-runtimes 2>/dev/null | tail -1 | cut -d' ' -f2 || echo 'N/A'"
+        }
+      ],
+      "items": [
+        {
+          "name": "Build & Run",
+          "action": {
+            "type": "submenu",
+            "menu": "build"
+          }
+        },
+        {
+          "name": "Testing",
+          "action": {
+            "type": "submenu",
+            "menu": "testing"
+          }
+        },
+        {
+          "name": "NuGet Packages",
+          "action": {
+            "type": "submenu",
+            "menu": "nuget"
+          }
+        },
+        {
+          "name": "Project Management",
+          "action": {
+            "type": "submenu",
+            "menu": "project"
+          }
+        },
+        {
+          "name": "EF Core (Migrations)",
+          "action": {
+            "type": "submenu",
+            "menu": "efcore"
+          }
+        },
+        {
+          "name": "Tools & Info",
+          "action": {
+            "type": "submenu",
+            "menu": "tools"
+          }
+        },
+        {
+          "name": "Exit",
+          "action": {
+            "type": "exit"
+          }
+        }
+      ]
+    },
+    "build": {
+      "title": "Build & Run",
+      "items": [
+        {
+          "name": "Build (Debug)",
+          "action": {
+            "type": "shell",
+            "command": "dotnet build"
+          }
+        },
+        {
+          "name": "Build (Release)",
+          "action": {
+            "type": "shell",
+            "command": "dotnet build -c Release"
+          }
+        },
+        {
+          "name": "Run project",
+          "action": {
+            "type": "shell",
+            "command": "dotnet run"
+          }
+        },
+        {
+          "name": "Run specific project",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "project",
+                "prompt": "Project path (e.g. src/MyApp)"
+              }
+            ],
+            "command_template": "dotnet run --project {project}"
+          }
+        },
+        {
+          "name": "Run with watch (hot reload)",
+          "action": {
+            "type": "shell",
+            "command": "dotnet watch run"
+          }
+        },
+        {
+          "name": "Publish (self-contained)",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "rid",
+                "prompt": "Runtime ID (e.g. win-x64, linux-x64, osx-arm64)",
+                "default": "linux-x64"
+              }
+            ],
+            "command_template": "dotnet publish -c Release -r {rid} --self-contained"
+          }
+        },
+        {
+          "name": "Clean",
+          "action": {
+            "type": "shell",
+            "command": "dotnet clean && echo 'Clean complete'"
+          }
+        },
+        {
+          "name": "Restore packages",
+          "action": {
+            "type": "shell",
+            "command": "dotnet restore"
+          }
+        }
+      ]
+    },
+    "testing": {
+      "title": "Testing",
+      "items": [
+        {
+          "name": "Run all tests",
+          "action": {
+            "type": "shell",
+            "command": "dotnet test"
+          }
+        },
+        {
+          "name": "Run tests (verbose)",
+          "action": {
+            "type": "shell",
+            "command": "dotnet test -v normal"
+          }
+        },
+        {
+          "name": "Run tests with coverage",
+          "action": {
+            "type": "shell",
+            "command": "dotnet test --collect:\"XPlat Code Coverage\""
+          }
+        },
+        {
+          "name": "Run specific test project",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "project",
+                "prompt": "Test project path"
+              }
+            ],
+            "command_template": "dotnet test {project}"
+          }
+        },
+        {
+          "name": "Run tests by filter",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "filter",
+                "prompt": "Filter (e.g. FullyQualifiedName~MyTest)"
+              }
+            ],
+            "command_template": "dotnet test --filter \"{filter}\""
+          }
+        },
+        {
+          "name": "Run tests (watch)",
+          "action": {
+            "type": "shell",
+            "command": "dotnet watch test"
+          }
+        }
+      ]
+    },
+    "nuget": {
+      "title": "NuGet Packages",
+      "items": [
+        {
+          "name": "List installed packages",
+          "action": {
+            "type": "shell",
+            "command": "dotnet list package"
+          }
+        },
+        {
+          "name": "Check for updates",
+          "action": {
+            "type": "shell",
+            "command": "dotnet list package --outdated"
+          }
+        },
+        {
+          "name": "Add package",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "pkg",
+                "prompt": "Package name"
+              }
+            ],
+            "command_template": "dotnet add package {pkg}"
+          }
+        },
+        {
+          "name": "Add package (specific version)",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "pkg",
+                "prompt": "Package name"
+              },
+              {
+                "name": "ver",
+                "prompt": "Version"
+              }
+            ],
+            "command_template": "dotnet add package {pkg} --version {ver}"
+          }
+        },
+        {
+          "name": "Remove package",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "pkg",
+                "prompt": "Package name"
+              }
+            ],
+            "command_template": "dotnet remove package {pkg}"
+          }
+        },
+        {
+          "name": "Search NuGet",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "term",
+                "prompt": "Search term"
+              }
+            ],
+            "command_template": "dotnet package search {term} --take 10"
+          }
+        },
+        {
+          "name": "Check vulnerabilities",
+          "action": {
+            "type": "shell",
+            "command": "dotnet list package --vulnerable"
+          }
+        }
+      ]
+    },
+    "project": {
+      "title": "Project Management",
+      "items": [
+        {
+          "name": "List projects in solution",
+          "action": {
+            "type": "shell",
+            "command": "dotnet sln list 2>/dev/null || echo 'No solution file found'"
+          }
+        },
+        {
+          "name": "Create new project",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "template",
+                "prompt": "Template (webapi, console, classlib, blazor, etc.)",
+                "default": "console"
+              },
+              {
+                "name": "name",
+                "prompt": "Project name"
+              }
+            ],
+            "command_template": "dotnet new {template} -n {name}"
+          }
+        },
+        {
+          "name": "List available templates",
+          "action": {
+            "type": "shell",
+            "command": "dotnet new list"
+          }
+        },
+        {
+          "name": "Add project to solution",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "project",
+                "prompt": "Project path"
+              }
+            ],
+            "command_template": "dotnet sln add {project}"
+          }
+        },
+        {
+          "name": "Add project reference",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "ref",
+                "prompt": "Reference project path"
+              }
+            ],
+            "command_template": "dotnet add reference {ref}"
+          }
+        },
+        {
+          "name": "Format code",
+          "action": {
+            "type": "shell",
+            "command": "dotnet format"
+          }
+        }
+      ]
+    },
+    "efcore": {
+      "title": "EF Core (Migrations)",
+      "items": [
+        {
+          "name": "Add migration",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "Migration name"
+              }
+            ],
+            "command_template": "dotnet ef migrations add {name}"
+          }
+        },
+        {
+          "name": "Update database",
+          "action": {
+            "type": "shell",
+            "command": "dotnet ef database update"
+          }
+        },
+        {
+          "name": "List migrations",
+          "action": {
+            "type": "shell",
+            "command": "dotnet ef migrations list"
+          }
+        },
+        {
+          "name": "Remove last migration",
+          "action": {
+            "type": "shell",
+            "command": "dotnet ef migrations remove"
+          }
+        },
+        {
+          "name": "Generate SQL script",
+          "action": {
+            "type": "shell",
+            "command": "dotnet ef migrations script"
+          }
+        },
+        {
+          "name": "Scaffold from DB",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "conn",
+                "prompt": "Connection string"
+              },
+              {
+                "name": "provider",
+                "prompt": "Provider (e.g. Microsoft.EntityFrameworkCore.SqlServer)",
+                "default": "Microsoft.EntityFrameworkCore.SqlServer"
+              }
+            ],
+            "command_template": "dotnet ef dbcontext scaffold \"{conn}\" {provider}"
+          }
+        }
+      ]
+    },
+    "tools": {
+      "title": "Tools & Info",
+      "items": [
+        {
+          "name": "SDK info",
+          "action": {
+            "type": "shell",
+            "command": "dotnet --info"
+          }
+        },
+        {
+          "name": "List installed SDKs",
+          "action": {
+            "type": "shell",
+            "command": "dotnet --list-sdks"
+          }
+        },
+        {
+          "name": "List installed runtimes",
+          "action": {
+            "type": "shell",
+            "command": "dotnet --list-runtimes"
+          }
+        },
+        {
+          "name": "List global tools",
+          "action": {
+            "type": "shell",
+            "command": "dotnet tool list -g"
+          }
+        },
+        {
+          "name": "Install global tool",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "tool",
+                "prompt": "Tool package name"
+              }
+            ],
+            "command_template": "dotnet tool install -g {tool}"
+          }
+        },
+        {
+          "name": "Update global tool",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "tool",
+                "prompt": "Tool package name"
+              }
+            ],
+            "command_template": "dotnet tool update -g {tool}"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,832 @@
+{
+  "title": "Podman Manager",
+  "start_menu": "main",
+  "menus": {
+    "main": {
+      "title": "Podman",
+      "info": [
+        {
+          "label": "Podman",
+          "command": "podman --version 2>/dev/null | cut -d' ' -f3 || echo 'not installed'"
+        },
+        {
+          "label": "Running",
+          "command": "podman ps -q 2>/dev/null | wc -l | tr -d ' ' || echo '0'"
+        },
+        {
+          "label": "Pods",
+          "command": "podman pod list -q 2>/dev/null | wc -l | tr -d ' ' || echo '0'"
+        }
+      ],
+      "items": [
+        {
+          "name": "Containers",
+          "action": {
+            "type": "submenu",
+            "menu": "containers"
+          }
+        },
+        {
+          "name": "Pods",
+          "action": {
+            "type": "submenu",
+            "menu": "pods"
+          }
+        },
+        {
+          "name": "Images",
+          "action": {
+            "type": "submenu",
+            "menu": "images"
+          }
+        },
+        {
+          "name": "Volumes & Networks",
+          "action": {
+            "type": "submenu",
+            "menu": "volumes-networks"
+          }
+        },
+        {
+          "name": "Compose",
+          "action": {
+            "type": "submenu",
+            "menu": "compose"
+          }
+        },
+        {
+          "name": "Machine (Podman VM)",
+          "action": {
+            "type": "submenu",
+            "menu": "machine"
+          }
+        },
+        {
+          "name": "System",
+          "action": {
+            "type": "submenu",
+            "menu": "system"
+          }
+        },
+        {
+          "name": "Exit",
+          "action": {
+            "type": "exit"
+          }
+        }
+      ]
+    },
+    "containers": {
+      "title": "Containers",
+      "info": [
+        {
+          "label": "Running",
+          "command": "podman ps -q 2>/dev/null | wc -l | tr -d ' '"
+        },
+        {
+          "label": "All",
+          "command": "podman ps -aq 2>/dev/null | wc -l | tr -d ' '"
+        }
+      ],
+      "items": [
+        {
+          "name": "List running containers",
+          "action": {
+            "type": "shell",
+            "command": "podman ps --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'"
+          }
+        },
+        {
+          "name": "List all containers",
+          "action": {
+            "type": "shell",
+            "command": "podman ps -a --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}'"
+          }
+        },
+        {
+          "name": "View container logs",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "container",
+                "prompt": "Container name or ID"
+              },
+              {
+                "name": "lines",
+                "prompt": "Number of lines",
+                "default": "100"
+              }
+            ],
+            "command_template": "podman logs --tail {lines} {container}"
+          }
+        },
+        {
+          "name": "Follow container logs",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "container",
+                "prompt": "Container name or ID"
+              }
+            ],
+            "command_template": "podman logs -f --tail 50 {container}"
+          }
+        },
+        {
+          "name": "Exec into container",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "container",
+                "prompt": "Container name or ID"
+              }
+            ],
+            "command_template": "podman exec -it {container} bash || podman exec -it {container} sh"
+          }
+        },
+        {
+          "name": "Inspect container",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "container",
+                "prompt": "Container name or ID"
+              }
+            ],
+            "command_template": "podman inspect {container} | head -80"
+          }
+        },
+        {
+          "name": "Container stats (live)",
+          "action": {
+            "type": "shell",
+            "command": "podman stats"
+          }
+        },
+        {
+          "name": "Container top (processes)",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "container",
+                "prompt": "Container name or ID"
+              }
+            ],
+            "command_template": "podman top {container}"
+          }
+        },
+        {
+          "name": "Stop container",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "container",
+                "prompt": "Container name or ID"
+              }
+            ],
+            "command_template": "podman stop {container} && echo 'Stopped'"
+          }
+        },
+        {
+          "name": "Start container",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "container",
+                "prompt": "Container name or ID"
+              }
+            ],
+            "command_template": "podman start {container} && echo 'Started'"
+          }
+        },
+        {
+          "name": "Restart container",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "container",
+                "prompt": "Container name or ID"
+              }
+            ],
+            "command_template": "podman restart {container} && echo 'Restarted'"
+          }
+        },
+        {
+          "name": "Remove stopped containers",
+          "action": {
+            "type": "shell",
+            "command": "podman container prune -f"
+          }
+        },
+        {
+          "name": "Run a new container",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "image",
+                "prompt": "Image (e.g. docker.io/library/nginx:latest)"
+              },
+              {
+                "name": "name",
+                "prompt": "Container name"
+              },
+              {
+                "name": "ports",
+                "prompt": "Port mapping (e.g. 8080:80)",
+                "default": ""
+              }
+            ],
+            "command_template": "podman run -d --name {name} -p {ports} {image}"
+          }
+        },
+        {
+          "name": "Generate systemd unit for container",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "container",
+                "prompt": "Container name or ID"
+              }
+            ],
+            "command_template": "podman generate systemd --name {container} --new"
+          }
+        }
+      ]
+    },
+    "pods": {
+      "title": "Pods",
+      "items": [
+        {
+          "name": "List pods",
+          "action": {
+            "type": "shell",
+            "command": "podman pod list"
+          }
+        },
+        {
+          "name": "Create pod",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "Pod name"
+              },
+              {
+                "name": "ports",
+                "prompt": "Published ports (e.g. 8080:80)",
+                "default": ""
+              }
+            ],
+            "command_template": "podman pod create --name {name} -p {ports} && echo 'Pod created: {name}'"
+          }
+        },
+        {
+          "name": "Pod details",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "pod",
+                "prompt": "Pod name"
+              }
+            ],
+            "command_template": "podman pod inspect {pod}"
+          }
+        },
+        {
+          "name": "Containers in pod",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "pod",
+                "prompt": "Pod name"
+              }
+            ],
+            "command_template": "podman ps --filter pod={pod} --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}'"
+          }
+        },
+        {
+          "name": "Start pod",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "pod",
+                "prompt": "Pod name"
+              }
+            ],
+            "command_template": "podman pod start {pod} && echo 'Pod started'"
+          }
+        },
+        {
+          "name": "Stop pod",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "pod",
+                "prompt": "Pod name"
+              }
+            ],
+            "command_template": "podman pod stop {pod} && echo 'Pod stopped'"
+          }
+        },
+        {
+          "name": "Restart pod",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "pod",
+                "prompt": "Pod name"
+              }
+            ],
+            "command_template": "podman pod restart {pod} && echo 'Pod restarted'"
+          }
+        },
+        {
+          "name": "Remove pod",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "pod",
+                "prompt": "Pod name"
+              }
+            ],
+            "command_template": "podman pod rm {pod} && echo 'Pod removed'"
+          }
+        },
+        {
+          "name": "Generate Kubernetes YAML from pod",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "pod",
+                "prompt": "Pod name"
+              }
+            ],
+            "command_template": "podman generate kube {pod}"
+          }
+        },
+        {
+          "name": "Run pod from Kubernetes YAML",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "file",
+                "prompt": "YAML file path"
+              }
+            ],
+            "command_template": "podman play kube {file}"
+          }
+        },
+        {
+          "name": "Generate systemd units for pod",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "pod",
+                "prompt": "Pod name"
+              }
+            ],
+            "command_template": "podman generate systemd --name {pod} --new"
+          }
+        }
+      ]
+    },
+    "images": {
+      "title": "Images",
+      "items": [
+        {
+          "name": "List images",
+          "action": {
+            "type": "shell",
+            "command": "podman images --format 'table {{.Repository}}\t{{.Tag}}\t{{.Size}}\t{{.Created}}'"
+          }
+        },
+        {
+          "name": "Pull image",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "image",
+                "prompt": "Image (e.g. docker.io/library/nginx:latest)"
+              }
+            ],
+            "command_template": "podman pull {image}"
+          }
+        },
+        {
+          "name": "Build image",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "tag",
+                "prompt": "Image tag (e.g. myapp:v1)"
+              },
+              {
+                "name": "path",
+                "prompt": "Build context path",
+                "default": "."
+              }
+            ],
+            "command_template": "podman build -t {tag} {path}"
+          }
+        },
+        {
+          "name": "Remove image",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "image",
+                "prompt": "Image name or ID"
+              }
+            ],
+            "command_template": "podman rmi {image}"
+          }
+        },
+        {
+          "name": "Remove dangling images",
+          "action": {
+            "type": "shell",
+            "command": "podman image prune -f"
+          }
+        },
+        {
+          "name": "Remove all unused images",
+          "action": {
+            "type": "shell",
+            "command": "podman image prune -a -f"
+          }
+        },
+        {
+          "name": "Search registries",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "term",
+                "prompt": "Search term"
+              }
+            ],
+            "command_template": "podman search {term} --limit 10"
+          }
+        },
+        {
+          "name": "Image history (layers)",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "image",
+                "prompt": "Image name"
+              }
+            ],
+            "command_template": "podman history {image}"
+          }
+        },
+        {
+          "name": "Image tree (layer visualization)",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "image",
+                "prompt": "Image name"
+              }
+            ],
+            "command_template": "podman image tree {image}"
+          }
+        }
+      ]
+    },
+    "volumes-networks": {
+      "title": "Volumes & Networks",
+      "items": [
+        {
+          "name": "List volumes",
+          "action": {
+            "type": "shell",
+            "command": "podman volume ls"
+          }
+        },
+        {
+          "name": "Inspect volume",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "volume",
+                "prompt": "Volume name"
+              }
+            ],
+            "command_template": "podman volume inspect {volume}"
+          }
+        },
+        {
+          "name": "Create volume",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "Volume name"
+              }
+            ],
+            "command_template": "podman volume create {name} && echo 'Volume created'"
+          }
+        },
+        {
+          "name": "Remove unused volumes",
+          "action": {
+            "type": "shell",
+            "command": "podman volume prune -f"
+          }
+        },
+        {
+          "name": "List networks",
+          "action": {
+            "type": "shell",
+            "command": "podman network ls"
+          }
+        },
+        {
+          "name": "Inspect network",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "network",
+                "prompt": "Network name"
+              }
+            ],
+            "command_template": "podman network inspect {network}"
+          }
+        },
+        {
+          "name": "Create network",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "Network name"
+              }
+            ],
+            "command_template": "podman network create {name} && echo 'Network created'"
+          }
+        },
+        {
+          "name": "Remove unused networks",
+          "action": {
+            "type": "shell",
+            "command": "podman network prune -f"
+          }
+        }
+      ]
+    },
+    "compose": {
+      "title": "Compose",
+      "items": [
+        {
+          "name": "Up (start services)",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "file",
+                "prompt": "Compose file path",
+                "default": "docker-compose.yml"
+              }
+            ],
+            "command_template": "podman compose -f {file} up -d"
+          }
+        },
+        {
+          "name": "Down (stop services)",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "file",
+                "prompt": "Compose file path",
+                "default": "docker-compose.yml"
+              }
+            ],
+            "command_template": "podman compose -f {file} down"
+          }
+        },
+        {
+          "name": "Status",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "file",
+                "prompt": "Compose file path",
+                "default": "docker-compose.yml"
+              }
+            ],
+            "command_template": "podman compose -f {file} ps"
+          }
+        },
+        {
+          "name": "Logs",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "file",
+                "prompt": "Compose file path",
+                "default": "docker-compose.yml"
+              },
+              {
+                "name": "service",
+                "prompt": "Service name (empty for all)",
+                "default": ""
+              }
+            ],
+            "command_template": "podman compose -f {file} logs --tail 50 {service}"
+          }
+        },
+        {
+          "name": "Rebuild and restart",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "file",
+                "prompt": "Compose file path",
+                "default": "docker-compose.yml"
+              }
+            ],
+            "command_template": "podman compose -f {file} up -d --build"
+          }
+        },
+        {
+          "name": "Run from Kubernetes YAML instead",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "file",
+                "prompt": "Kubernetes YAML file"
+              }
+            ],
+            "command_template": "podman play kube {file}"
+          }
+        },
+        {
+          "name": "Stop Kubernetes YAML",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "file",
+                "prompt": "Kubernetes YAML file"
+              }
+            ],
+            "command_template": "podman play kube --down {file}"
+          }
+        }
+      ]
+    },
+    "machine": {
+      "title": "Machine (Podman VM)",
+      "items": [
+        {
+          "name": "List machines",
+          "action": {
+            "type": "shell",
+            "command": "podman machine list"
+          }
+        },
+        {
+          "name": "Machine info",
+          "action": {
+            "type": "shell",
+            "command": "podman machine info"
+          }
+        },
+        {
+          "name": "Start default machine",
+          "action": {
+            "type": "shell",
+            "command": "podman machine start && echo 'Machine started'"
+          }
+        },
+        {
+          "name": "Stop default machine",
+          "action": {
+            "type": "shell",
+            "command": "podman machine stop && echo 'Machine stopped'"
+          }
+        },
+        {
+          "name": "Init new machine",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "cpus",
+                "prompt": "CPUs",
+                "default": "2"
+              },
+              {
+                "name": "memory",
+                "prompt": "Memory in MB",
+                "default": "2048"
+              },
+              {
+                "name": "disk",
+                "prompt": "Disk size in GB",
+                "default": "20"
+              }
+            ],
+            "command_template": "podman machine init --cpus {cpus} --memory {memory} --disk-size {disk}"
+          }
+        },
+        {
+          "name": "SSH into machine",
+          "action": {
+            "type": "shell",
+            "command": "podman machine ssh"
+          }
+        }
+      ]
+    },
+    "system": {
+      "title": "System",
+      "items": [
+        {
+          "name": "System info",
+          "action": {
+            "type": "shell",
+            "command": "podman info"
+          }
+        },
+        {
+          "name": "Disk usage",
+          "action": {
+            "type": "shell",
+            "command": "podman system df"
+          }
+        },
+        {
+          "name": "Detailed disk usage",
+          "action": {
+            "type": "shell",
+            "command": "podman system df -v"
+          }
+        },
+        {
+          "name": "Clean up everything unused",
+          "action": {
+            "type": "shell",
+            "command": "podman system prune -f && echo 'Cleanup complete'"
+          }
+        },
+        {
+          "name": "Clean up everything (including volumes)",
+          "action": {
+            "type": "shell",
+            "command": "podman system prune --volumes -f && echo 'Full cleanup complete'"
+          }
+        },
+        {
+          "name": "List registries config",
+          "action": {
+            "type": "shell",
+            "command": "cat /etc/containers/registries.conf 2>/dev/null || cat ~/.config/containers/registries.conf 2>/dev/null || echo 'No registries.conf found'"
+          }
+        },
+        {
+          "name": "Podman events (live)",
+          "action": {
+            "type": "shell",
+            "command": "podman events"
+          }
+        }
+      ]
+    }
+  }
+}

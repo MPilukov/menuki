@@ -1,0 +1,32 @@
+{
+  "title": "Result Formatting Demo",
+  "start_menu": "main",
+  "menus": {
+    "main": {
+      "title": "Result Formatting",
+      "info": [
+        { "label": "Tip", "value": "These use echo so they run anywhere; swap in kubectl/docker for real." }
+      ],
+      "items": [
+        { "name": "Pretty-print JSON", "action": {
+            "type": "shell",
+            "command": "echo '{\"name\":\"web\",\"replicas\":3,\"labels\":{\"app\":\"api\"}}'",
+            "format": "json" } },
+        { "name": "Table view", "action": {
+            "type": "shell",
+            "command": "echo '[{\"name\":\"web\",\"status\":\"Running\",\"restarts\":0},{\"name\":\"db\",\"status\":\"Pending\",\"restarts\":2}]'",
+            "format": "table" } },
+        { "name": "Extract field (query)", "action": {
+            "type": "shell",
+            "command": "echo '{\"items\":[{\"metadata\":{\"name\":\"web\"}},{\"metadata\":{\"name\":\"db\"}}]}'",
+            "query": "$.items[*].metadata.name" } },
+        { "name": "Real: kubectl pods as table", "action": {
+            "type": "shell",
+            "command": "kubectl get pods -o json",
+            "query": "$.items[*].metadata",
+            "format": "table" } },
+        { "name": "Exit", "action": { "type": "exit" } }
+      ]
+    }
+  }
+}

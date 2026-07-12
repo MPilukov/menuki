@@ -1,0 +1,483 @@
+{
+  "title": "Git Toolkit",
+  "start_menu": "main",
+  "menus": {
+    "main": {
+      "title": "Git",
+      "info": [
+        {
+          "label": "Branch",
+          "command": "git branch --show-current 2>/dev/null || echo 'not a repo'"
+        },
+        {
+          "label": "Status",
+          "command": "git status --short 2>/dev/null | wc -l | tr -d ' '"
+        },
+        {
+          "label": "Last Commit",
+          "command": "git log -1 --format='%s (%ar)' 2>/dev/null || echo 'N/A'"
+        }
+      ],
+      "items": [
+        {
+          "name": "Status & Info",
+          "action": {
+            "type": "submenu",
+            "menu": "info"
+          }
+        },
+        {
+          "name": "Branches",
+          "action": {
+            "type": "submenu",
+            "menu": "branches"
+          }
+        },
+        {
+          "name": "Commits",
+          "action": {
+            "type": "submenu",
+            "menu": "commits"
+          }
+        },
+        {
+          "name": "Stash",
+          "action": {
+            "type": "submenu",
+            "menu": "stash"
+          }
+        },
+        {
+          "name": "Remote",
+          "action": {
+            "type": "submenu",
+            "menu": "remote"
+          }
+        },
+        {
+          "name": "Tags",
+          "action": {
+            "type": "submenu",
+            "menu": "tags"
+          }
+        },
+        {
+          "name": "Exit",
+          "action": {
+            "type": "exit"
+          }
+        }
+      ]
+    },
+    "info": {
+      "title": "Status & Info",
+      "items": [
+        {
+          "name": "Status",
+          "action": {
+            "type": "shell",
+            "command": "git status"
+          }
+        },
+        {
+          "name": "Short status",
+          "action": {
+            "type": "shell",
+            "command": "git status --short --branch"
+          }
+        },
+        {
+          "name": "Diff (unstaged)",
+          "action": {
+            "type": "shell",
+            "command": "git diff"
+          }
+        },
+        {
+          "name": "Diff (staged)",
+          "action": {
+            "type": "shell",
+            "command": "git diff --cached"
+          }
+        },
+        {
+          "name": "Log (last 20)",
+          "action": {
+            "type": "shell",
+            "command": "git log --oneline --graph --decorate -20"
+          }
+        },
+        {
+          "name": "Log (detailed, last 10)",
+          "action": {
+            "type": "shell",
+            "command": "git log --graph --decorate --stat -10"
+          }
+        },
+        {
+          "name": "Show last commit",
+          "action": {
+            "type": "shell",
+            "command": "git show --stat HEAD"
+          }
+        },
+        {
+          "name": "File blame",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "file",
+                "prompt": "File path"
+              }
+            ],
+            "command_template": "git blame {file}"
+          }
+        }
+      ]
+    },
+    "branches": {
+      "title": "Branches",
+      "items": [
+        {
+          "name": "List local branches",
+          "action": {
+            "type": "shell",
+            "command": "git branch -v"
+          }
+        },
+        {
+          "name": "List all branches (incl. remote)",
+          "action": {
+            "type": "shell",
+            "command": "git branch -av"
+          }
+        },
+        {
+          "name": "Switch branch",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "branch",
+                "prompt": "Branch name"
+              }
+            ],
+            "command_template": "git checkout {branch}"
+          }
+        },
+        {
+          "name": "Create and switch to new branch",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "branch",
+                "prompt": "New branch name"
+              }
+            ],
+            "command_template": "git checkout -b {branch}"
+          }
+        },
+        {
+          "name": "Merge branch into current",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "branch",
+                "prompt": "Branch to merge"
+              }
+            ],
+            "command_template": "git merge {branch}"
+          }
+        },
+        {
+          "name": "Delete local branch",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "branch",
+                "prompt": "Branch to delete"
+              }
+            ],
+            "command_template": "git branch -d {branch}"
+          }
+        },
+        {
+          "name": "Show branches merged into current",
+          "action": {
+            "type": "shell",
+            "command": "git branch --merged"
+          }
+        }
+      ]
+    },
+    "commits": {
+      "title": "Commits",
+      "items": [
+        {
+          "name": "Add all & commit",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "msg",
+                "prompt": "Commit message"
+              }
+            ],
+            "command_template": "git add -A && git commit -m \"{msg}\""
+          }
+        },
+        {
+          "name": "Add specific file & commit",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "file",
+                "prompt": "File path"
+              },
+              {
+                "name": "msg",
+                "prompt": "Commit message"
+              }
+            ],
+            "command_template": "git add {file} && git commit -m \"{msg}\""
+          }
+        },
+        {
+          "name": "Amend last commit",
+          "action": {
+            "type": "shell",
+            "command": "git commit --amend --no-edit"
+          }
+        },
+        {
+          "name": "Cherry-pick commit",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "hash",
+                "prompt": "Commit hash"
+              }
+            ],
+            "command_template": "git cherry-pick {hash}"
+          }
+        },
+        {
+          "name": "Revert commit",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "hash",
+                "prompt": "Commit hash"
+              }
+            ],
+            "command_template": "git revert {hash}"
+          }
+        },
+        {
+          "name": "Search commits by message",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "query",
+                "prompt": "Search text"
+              }
+            ],
+            "command_template": "git log --oneline --grep=\"{query}\""
+          }
+        }
+      ]
+    },
+    "stash": {
+      "title": "Stash",
+      "items": [
+        {
+          "name": "List stashes",
+          "action": {
+            "type": "shell",
+            "command": "git stash list"
+          }
+        },
+        {
+          "name": "Stash changes",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "msg",
+                "prompt": "Stash message",
+                "default": ""
+              }
+            ],
+            "command_template": "git stash push -m \"{msg}\""
+          }
+        },
+        {
+          "name": "Apply latest stash",
+          "action": {
+            "type": "shell",
+            "command": "git stash pop"
+          }
+        },
+        {
+          "name": "Apply specific stash",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "index",
+                "prompt": "Stash index (e.g. 0, 1, 2)",
+                "default": "0"
+              }
+            ],
+            "command_template": "git stash apply stash@{{index}}"
+          }
+        },
+        {
+          "name": "Show stash diff",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "index",
+                "prompt": "Stash index",
+                "default": "0"
+              }
+            ],
+            "command_template": "git stash show -p stash@{{index}}"
+          }
+        },
+        {
+          "name": "Drop stash",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "index",
+                "prompt": "Stash index",
+                "default": "0"
+              }
+            ],
+            "command_template": "git stash drop stash@{{index}}"
+          }
+        }
+      ]
+    },
+    "remote": {
+      "title": "Remote",
+      "items": [
+        {
+          "name": "List remotes",
+          "action": {
+            "type": "shell",
+            "command": "git remote -v"
+          }
+        },
+        {
+          "name": "Fetch all",
+          "action": {
+            "type": "shell",
+            "command": "git fetch --all --prune"
+          }
+        },
+        {
+          "name": "Pull current branch",
+          "action": {
+            "type": "shell",
+            "command": "git pull"
+          }
+        },
+        {
+          "name": "Push current branch",
+          "action": {
+            "type": "shell",
+            "command": "git push"
+          }
+        },
+        {
+          "name": "Push and set upstream",
+          "action": {
+            "type": "shell",
+            "command": "git push -u origin HEAD"
+          }
+        },
+        {
+          "name": "Show remote info",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "remote",
+                "prompt": "Remote name",
+                "default": "origin"
+              }
+            ],
+            "command_template": "git remote show {remote}"
+          }
+        }
+      ]
+    },
+    "tags": {
+      "title": "Tags",
+      "items": [
+        {
+          "name": "List tags",
+          "action": {
+            "type": "shell",
+            "command": "git tag -l --sort=-version:refname | head -20"
+          }
+        },
+        {
+          "name": "Create tag",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "tag",
+                "prompt": "Tag name (e.g. v1.0.0)"
+              },
+              {
+                "name": "msg",
+                "prompt": "Tag message"
+              }
+            ],
+            "command_template": "git tag -a {tag} -m \"{msg}\""
+          }
+        },
+        {
+          "name": "Push tag",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "tag",
+                "prompt": "Tag name"
+              }
+            ],
+            "command_template": "git push origin {tag}"
+          }
+        },
+        {
+          "name": "Delete local tag",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "tag",
+                "prompt": "Tag name"
+              }
+            ],
+            "command_template": "git tag -d {tag}"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "title": "Plugin Demo",
+  "start_menu": "main",
+  "menus": {
+    "main": {
+      "title": "Plugin & Script Demo",
+      "info": [
+        { "label": "Plugins dir", "value": "~/.menuki/plugins/" },
+        { "label": "Platform", "command": "uname -s 2>/dev/null || echo Windows" }
+      ],
+      "items": [
+        {
+          "name": "Scripts",
+          "action": { "type": "submenu", "menu": "scripts" }
+        },
+        {
+          "name": "Plugin Actions",
+          "action": { "type": "submenu", "menu": "plugins" }
+        },
+        {
+          "name": "Exit",
+          "action": { "type": "exit" }
+        }
+      ]
+    },
+    "scripts": {
+      "title": "Script Examples",
+      "items": [
+        {
+          "name": "Run deploy script",
+          "action": {
+            "type": "script",
+            "path": "Menuki/examples/scripts/deploy.sh",
+            "args": "--env staging"
+          }
+        },
+        {
+          "name": "Run backup script",
+          "action": {
+            "type": "script",
+            "path": "Menuki/examples/scripts/backup.sh"
+          }
+        },
+        {
+          "name": "Run PowerShell health check (Windows)",
+          "action": {
+            "type": "script",
+            "path": "Menuki/examples/scripts/health-check.ps1",
+            "args": "-Verbose"
+          }
+        }
+      ]
+    },
+    "plugins": {
+      "title": "Plugin Actions",
+      "info": [
+        {
+          "label": "Note",
+          "value": "These require plugins in ~/.menuki/plugins/"
+        }
+      ],
+      "items": [
+        {
+          "name": "Exec into web-app container",
+          "action": {
+            "type": "docker-exec",
+            "params": {
+              "container": "web-app",
+              "command": "/bin/bash"
+            }
+          }
+        },
+        {
+          "name": "Exec into database container",
+          "action": {
+            "type": "docker-exec",
+            "params": {
+              "container": "postgres-db",
+              "command": "psql -U admin"
+            }
+          }
+        },
+        {
+          "name": "Send Slack notification",
+          "action": {
+            "type": "slack-notify",
+            "params": {
+              "channel": "#deployments",
+              "message": "Deploy completed successfully"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

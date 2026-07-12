@@ -1,0 +1,73 @@
+{
+  "$schema": "../../menuki.schema.json",
+  "title": "Kubernetes Ops",
+  "start_menu": "main",
+  "menus": {
+    "main": {
+      "title": "kubectl (read-only)",
+      "info": [
+        { "label": "Requires", "value": "kubectl configured against a cluster. All actions here are read-only." },
+        { "label": "Showcase", "value": "query pulls fields out of `-o json`; format shapes it for the terminal or an agent." }
+      ],
+      "items": [
+        {
+          "name": "Pods - names (all namespaces)",
+          "description": "List every pod name in the cluster, one per line.",
+          "help": "kubectl get pods -o json → JSONPath extracts metadata.name from each item.",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get pods -A -o json",
+            "query": "$.items[*].metadata.name",
+            "format": "raw"
+          }
+        },
+        {
+          "name": "Nodes - metadata (table)",
+          "description": "Node metadata (name, labels, timestamps) as a table.",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get nodes -o json",
+            "query": "$.items[*].metadata",
+            "format": "table"
+          }
+        },
+        {
+          "name": "Deployments - status (pretty JSON)",
+          "description": "Deployment status blocks, pretty-printed.",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get deployments -A -o json",
+            "query": "$.items[*].status",
+            "format": "json"
+          }
+        },
+        {
+          "name": "Describe a pod",
+          "description": "Full describe output for a pod you name.",
+          "help": "Prompts for namespace and pod name; nothing is mutated.",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              { "name": "namespace", "prompt": "Namespace", "default": "default" },
+              { "name": "pod", "prompt": "Pod name" }
+            ],
+            "command_template": "kubectl describe pod {pod} -n {namespace}"
+          }
+        },
+        {
+          "name": "Tail logs",
+          "description": "Stream the last 100 log lines from a pod.",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              { "name": "namespace", "prompt": "Namespace", "default": "default" },
+              { "name": "pod", "prompt": "Pod name" }
+            ],
+            "command_template": "kubectl logs {pod} -n {namespace} --tail=100"
+          }
+        },
+        { "name": "Exit", "action": { "type": "exit" } }
+      ]
+    }
+  }
+}

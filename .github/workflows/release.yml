@@ -1,0 +1,46 @@
+name: Release
+
+# Tag a commit `vX.Y.Z` and push the tag to build binaries for every platform
+# and attach them to a GitHub Release:
+#   git tag v0.1.0 && git push origin v0.1.0
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build self-contained single-file binaries
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          for rid in linux-x64 linux-arm64 osx-x64 osx-arm64 win-x64; do
+            echo "== publishing $rid =="
+            dotnet publish Menuki/Menuki.csproj \
+              -c Release -r "$rid" \
+              --self-contained true \
+              -p:PublishSingleFile=true \
+              -p:EnableCompressionInSingleFile=true \
+              -p:AssemblyName=menuki \
+              -o "dist/$rid" --nologo
+            if [ "$rid" = "win-x64" ]; then
+              (cd "dist/$rid" && zip -q "../../out/menuki-$rid.zip" menuki.exe)
+            else
+              tar -C "dist/$rid" -czf "out/menuki-$rid.tar.gz" menuki
+            fi
+          done
+          ls -la out
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ github.ref_name }}" out/* --generate-notes --title "${{ github.ref_name }}"

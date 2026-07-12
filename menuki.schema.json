@@ -1,0 +1,242 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/MPilukov/menuki/main/menuki.schema.json",
+  "title": "Menuki configuration",
+  "description": "A JSON-configurable interactive terminal menu, usable by humans, scripts and AI agents.",
+  "type": "object",
+  "required": ["menus"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Path or URL to this JSON schema (enables editor autocomplete and validation)."
+    },
+    "title": {
+      "type": "string",
+      "description": "Window/title-bar text for the application."
+    },
+    "start_menu": {
+      "type": "string",
+      "default": "main",
+      "description": "ID of the menu shown first. Must be a key in 'menus'."
+    },
+    "theme": {
+      "type": "string",
+      "enum": ["dark", "light", "custom"],
+      "description": "Default color theme. 'custom' uses the 'colors' object."
+    },
+    "colors": {
+      "$ref": "#/definitions/colors"
+    },
+    "editor": {
+      "type": "string",
+      "description": "Editor command used by the E (Edit JSON) key, e.g. 'code --wait', 'subl -w', 'nano'. GUI editors get a wait flag added automatically."
+    },
+    "menus": {
+      "type": "object",
+      "description": "Map of menuId -> menu definition. Nest menus via 'submenu' actions.",
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/definitions/menu" }
+    }
+  },
+  "definitions": {
+    "menu": {
+      "type": "object",
+      "required": ["items"],
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string", "description": "Heading shown above the items." },
+        "info": {
+          "type": "array",
+          "description": "Info panel rows shown at the top of the menu.",
+          "items": { "$ref": "#/definitions/infoEntry" }
+        },
+        "items": {
+          "type": "array",
+          "description": "The selectable menu items.",
+          "items": { "$ref": "#/definitions/item" }
+        }
+      }
+    },
+    "infoEntry": {
+      "type": "object",
+      "required": ["label"],
+      "additionalProperties": false,
+      "description": "An info-panel row: a static 'value' or the output of a 'command'.",
+      "properties": {
+        "label": { "type": "string", "description": "Left-hand label." },
+        "value": { "type": "string", "description": "Static text to display." },
+        "command": { "type": "string", "description": "Shell command whose output is displayed (evaluated when the menu renders)." }
+      }
+    },
+    "item": {
+      "type": "object",
+      "required": ["name", "action"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "description": "Displayed label." },
+        "description": {
+          "type": "string",
+          "description": "One-line summary. Shown on the '?' key and returned to agents by 'list' / 'list_actions'."
+        },
+        "help": {
+          "type": "string",
+          "description": "Longer help text, shown next to the description on '?'."
+        },
+        "action": { "$ref": "#/definitions/action" }
+      }
+    },
+    "action": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "description": "What an item does when selected.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "The action type.",
+          "enum": [
+            "shell", "submenu", "input+shell", "script",
+            "open-url", "open-file", "open-config",
+            "sequence", "parallel", "delay", "background", "jobs", "exit"
+          ]
+        },
+        "command": { "type": "string", "description": "Shell command (for 'shell' and 'background')." },
+        "menu": { "type": "string", "description": "Target menu ID (for 'submenu')." },
+        "url": { "type": "string", "description": "URL to open in the default browser (for 'open-url')." },
+        "path": { "type": "string", "description": "File/script/config path (for 'open-file', 'script', 'open-config'). '~' is expanded." },
+        "editor": { "type": "string", "description": "Editor to open the file with (for 'open-file')." },
+        "args": { "type": "string", "description": "Arguments passed to the script (for 'script')." },
+        "inputs": {
+          "type": "array",
+          "description": "Prompted inputs interpolated into 'command_template' (for 'input+shell').",
+          "items": { "$ref": "#/definitions/input" }
+        },
+        "command_template": {
+          "type": "string",
+          "description": "Command with {name} placeholders filled from 'inputs' (for 'input+shell')."
+        },
+        "params": {
+          "type": "object",
+          "description": "Parameters for a plugin action type.",
+          "additionalProperties": { "type": "string" }
+        },
+        "id": { "type": "string", "description": "Optional step identifier." },
+        "steps": {
+          "type": "array",
+          "description": "Child steps run in order ('sequence') or concurrently ('parallel').",
+          "items": { "$ref": "#/definitions/action" }
+        },
+        "stop_on_error": {
+          "type": "boolean",
+          "default": true,
+          "description": "For 'sequence': stop at the first step that exits non-zero."
+        },
+        "retry": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Retry a failing step this many extra times (total attempts = retry + 1)."
+        },
+        "retry_delay": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Seconds to wait between retry attempts."
+        },
+        "on_success": { "$ref": "#/definitions/action", "description": "Action run after all steps succeed." },
+        "on_failure": { "$ref": "#/definitions/action", "description": "Action run if any step fails." },
+        "max_parallel": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "For 'parallel': cap on concurrent steps (default: all at once)."
+        },
+        "seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Seconds to wait (for 'delay')."
+        },
+        "name": { "type": "string", "description": "Display name for a 'background' job." },
+        "format": {
+          "type": "string",
+          "enum": ["json", "table", "raw"],
+          "description": "Post-process a shell command's output (for 'shell')."
+        },
+        "query": {
+          "type": "string",
+          "description": "Minimal JSONPath applied to a shell command's JSON output, e.g. \"$.items[*].metadata.name\" (for 'shell')."
+        }
+      },
+      "allOf": [
+        { "if": { "properties": { "type": { "const": "shell" } } }, "then": { "required": ["command"] } },
+        { "if": { "properties": { "type": { "const": "background" } } }, "then": { "required": ["command"] } },
+        { "if": { "properties": { "type": { "const": "submenu" } } }, "then": { "required": ["menu"] } },
+        { "if": { "properties": { "type": { "const": "open-url" } } }, "then": { "required": ["url"] } },
+        { "if": { "properties": { "type": { "const": "open-file" } } }, "then": { "required": ["path"] } },
+        { "if": { "properties": { "type": { "const": "open-config" } } }, "then": { "required": ["path"] } },
+        { "if": { "properties": { "type": { "const": "script" } } }, "then": { "required": ["path"] } },
+        { "if": { "properties": { "type": { "const": "input+shell" } } }, "then": { "required": ["inputs", "command_template"] } },
+        { "if": { "properties": { "type": { "const": "sequence" } } }, "then": { "required": ["steps"] } },
+        { "if": { "properties": { "type": { "const": "parallel" } } }, "then": { "required": ["steps"] } },
+        { "if": { "properties": { "type": { "const": "delay" } } }, "then": { "required": ["seconds"] } }
+      ]
+    },
+    "input": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "description": "A prompted, optionally typed input value.",
+      "properties": {
+        "name": { "type": "string", "description": "Placeholder name used as {name} in command_template." },
+        "prompt": { "type": "string", "description": "Text shown when asking for the value." },
+        "type": {
+          "type": "string",
+          "enum": ["string", "choice", "number", "boolean", "date"],
+          "default": "string",
+          "description": "Validated input type."
+        },
+        "default": {
+          "type": ["string", "number", "boolean"],
+          "description": "Value used when nothing is entered."
+        },
+        "required": {
+          "type": "boolean",
+          "description": "When true, a value must be provided (no empty fallback)."
+        },
+        "options": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Allowed values (for type 'choice')."
+        },
+        "min": { "type": "number", "description": "Lower bound (for type 'number')." },
+        "max": { "type": "number", "description": "Upper bound (for type 'number')." },
+        "pattern": { "type": "string", "description": "Regex the value must match (for type 'string'), e.g. \"^OPS-[0-9]+$\"." },
+        "example": { "type": "string", "description": "Example value shown in prompt/errors." },
+        "format": { "type": "string", "description": "Date format (for type 'date'), default \"yyyy-MM-dd\"." }
+      },
+      "allOf": [
+        { "if": { "required": ["type"], "properties": { "type": { "const": "choice" } } }, "then": { "required": ["options"] } }
+      ]
+    },
+    "colors": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Custom color scheme (ConsoleColor names, case-insensitive).",
+      "properties": {
+        "text": { "$ref": "#/definitions/color" },
+        "selected": { "$ref": "#/definitions/color" },
+        "title": { "$ref": "#/definitions/color" },
+        "info_border": { "$ref": "#/definitions/color" },
+        "info_label": { "$ref": "#/definitions/color" },
+        "info_value": { "$ref": "#/definitions/color" },
+        "message": { "$ref": "#/definitions/color" }
+      }
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "Black", "DarkBlue", "DarkGreen", "DarkCyan", "DarkRed", "DarkMagenta",
+        "DarkYellow", "Gray", "DarkGray", "Blue", "Green", "Cyan", "Red",
+        "Magenta", "Yellow", "White"
+      ]
+    }
+  }
+}

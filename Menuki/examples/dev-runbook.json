@@ -1,0 +1,123 @@
+{
+  "$schema": "../../menuki.schema.json",
+  "title": "Project Dev Runbook",
+  "start_menu": "main",
+  "editor": "code --wait",
+  "menus": {
+    "main": {
+      "title": "Dev Runbook",
+      "info": [
+        { "label": "What", "value": "The everyday tasks for this repo - same catalog for you, your scripts and your agent." },
+        { "label": "Tip", "value": "Press ? on any item for its description. Run headless with: menuki list/exec." }
+      ],
+      "items": [
+        {
+          "name": "Restore dependencies",
+          "description": "Download NuGet packages the project needs.",
+          "help": "Run this after a fresh clone or when you change package references.",
+          "action": { "type": "shell", "command": "dotnet restore" }
+        },
+        {
+          "name": "Build",
+          "description": "Compile the solution in Debug.",
+          "action": { "type": "shell", "command": "dotnet build -c Debug --nologo" }
+        },
+        {
+          "name": "Run tests",
+          "description": "Execute the test suite.",
+          "help": "Fails fast on the first failing assertion; check stderr for details.",
+          "action": { "type": "shell", "command": "dotnet test --nologo" }
+        },
+        {
+          "name": "Check formatting",
+          "description": "Verify code style without changing files.",
+          "action": { "type": "shell", "command": "dotnet format --verify-no-changes" }
+        },
+        {
+          "name": "Full check (restore → build → test)",
+          "description": "Run the whole verification pipeline in order; stops at the first failure.",
+          "help": "This is what CI runs. Green here usually means green on the server.",
+          "action": {
+            "type": "sequence",
+            "stop_on_error": true,
+            "on_success": { "type": "shell", "command": "echo '✓ all checks passed'" },
+            "on_failure": { "type": "shell", "command": "echo '✗ check failed - see output above'" },
+            "steps": [
+              { "type": "shell", "command": "dotnet restore" },
+              { "type": "shell", "command": "dotnet build -c Debug --nologo" },
+              { "type": "shell", "command": "dotnet test --nologo" }
+            ]
+          }
+        },
+        {
+          "name": "Release tasks",
+          "description": "Publishing and installation actions.",
+          "action": { "type": "submenu", "menu": "release" }
+        },
+        {
+          "name": "Git",
+          "description": "Common git shortcuts.",
+          "action": { "type": "submenu", "menu": "git" }
+        },
+        { "name": "Exit", "action": { "type": "exit" } }
+      ]
+    },
+    "release": {
+      "title": "Release",
+      "items": [
+        {
+          "name": "Publish self-contained binary",
+          "description": "Clean, then publish a single-file self-contained executable.",
+          "help": "Produces a binary that runs without a .NET install. Prints the output path.",
+          "action": {
+            "type": "sequence",
+            "steps": [
+              { "type": "shell", "command": "dotnet clean --nologo" },
+              { "type": "shell", "command": "dotnet publish Menuki/Menuki.csproj -c Release -p:PublishSingleFile=true --self-contained true -r osx-arm64 --nologo" }
+            ]
+          }
+        },
+        {
+          "name": "Install locally",
+          "description": "Build and install the `menuki` binary onto your PATH.",
+          "action": { "type": "shell", "command": "./scripts/install.sh" }
+        },
+        {
+          "name": "Tag a release",
+          "description": "Create an annotated git tag for the given version.",
+          "action": {
+            "type": "input+shell",
+            "inputs": [ { "name": "version", "prompt": "Version (e.g. 1.2.0)" } ],
+            "command_template": "git tag -a v{version} -m 'Release v{version}' && echo 'tagged v{version}'"
+          }
+        },
+        { "name": "Back", "action": { "type": "submenu", "menu": "main" } }
+      ]
+    },
+    "git": {
+      "title": "Git",
+      "items": [
+        {
+          "name": "Status",
+          "description": "Show the working tree status.",
+          "action": { "type": "shell", "command": "git status -sb" }
+        },
+        {
+          "name": "Recent log",
+          "description": "Last 15 commits, one line each.",
+          "action": { "type": "shell", "command": "git log --oneline -15" }
+        },
+        {
+          "name": "Commit all",
+          "description": "Stage everything and commit with a message you type.",
+          "action": {
+            "type": "input+shell",
+            "inputs": [ { "name": "message", "prompt": "Commit message" } ],
+            "command_template": "git add -A && git commit -m \"{message}\""
+          }
+        },
+        { "name": "Back", "action": { "type": "submenu", "menu": "main" } }
+      ]
+    }
+  }
+}

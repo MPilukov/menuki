@@ -1,0 +1,75 @@
+{
+  "$schema": "../../menuki.schema.json",
+  "title": "GitHub Ops",
+  "start_menu": "main",
+  "menus": {
+    "main": {
+      "title": "GitHub (gh)",
+      "info": [
+        { "label": "Requires", "value": "GitHub CLI (`gh`), authenticated. `gh --json` emits clean JSON arrays." },
+        { "label": "Showcase", "value": "format:table renders the array; query extracts a field. Same output for humans, scripts and agents." }
+      ],
+      "items": [
+        {
+          "name": "Open PRs (table)",
+          "description": "List open pull requests as a table.",
+          "help": "Uses `gh pr list --json ...` and renders the JSON array as an ASCII table.",
+          "action": {
+            "type": "shell",
+            "command": "gh pr list --json number,title,author,state,createdAt",
+            "format": "table"
+          }
+        },
+        {
+          "name": "Open PR titles only",
+          "description": "Just the titles of open PRs, one per line.",
+          "help": "Same data, but a JSONPath query projects a single field.",
+          "action": {
+            "type": "shell",
+            "command": "gh pr list --json number,title",
+            "query": "$[*].title",
+            "format": "raw"
+          }
+        },
+        {
+          "name": "Recent workflow runs (table)",
+          "description": "Latest CI runs with status and conclusion.",
+          "action": {
+            "type": "shell",
+            "command": "gh run list --limit 15 --json databaseId,name,status,conclusion,headBranch",
+            "format": "table"
+          }
+        },
+        {
+          "name": "Open issues (table)",
+          "description": "List open issues as a table.",
+          "action": {
+            "type": "shell",
+            "command": "gh issue list --json number,title,state,author",
+            "format": "table"
+          }
+        },
+        {
+          "name": "Repo summary (pretty JSON)",
+          "description": "Key facts about this repo, pretty-printed.",
+          "help": "format:json pretty-prints; handy for reading nested output in the terminal.",
+          "action": {
+            "type": "shell",
+            "command": "gh repo view --json name,description,defaultBranchRef,stargazerCount,forkCount,visibility",
+            "format": "json"
+          }
+        },
+        {
+          "name": "Create issue",
+          "description": "Open a new issue with a title you type.",
+          "action": {
+            "type": "input+shell",
+            "inputs": [ { "name": "title", "prompt": "Issue title" } ],
+            "command_template": "gh issue create --title \"{title}\" --body 'Filed from Menuki'"
+          }
+        },
+        { "name": "Exit", "action": { "type": "exit" } }
+      ]
+    }
+  }
+}

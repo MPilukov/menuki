@@ -1,0 +1,38 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+publish/
+dist/
+
+# .NET
+*.user
+*.suo
+*.userprefs
+project.lock.json
+*.nupkg
+*.snupkg
+.packages/
+msbuild.log
+msbuild.err
+msbuild.wrn
+
+# IDE
+.idea/
+.vs/
+.vscode/
+*.DotSettings.user
+
+# Editor / OS
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Claude Code local settings
+.claude/
+
+# Local backups written by the config editor
+*.bak

@@ -1,0 +1,454 @@
+{
+  "title": "GitHub CI/CD",
+  "start_menu": "main",
+  "menus": {
+    "main": {
+      "title": "GitHub CI/CD",
+      "info": [
+        {
+          "label": "Repo",
+          "command": "gh repo view --json nameWithOwner -q '.nameWithOwner' 2>/dev/null || echo 'N/A'"
+        },
+        {
+          "label": "Branch",
+          "command": "git branch --show-current 2>/dev/null || echo 'N/A'"
+        }
+      ],
+      "items": [
+        {
+          "name": "Pull Requests",
+          "action": {
+            "type": "submenu",
+            "menu": "prs"
+          }
+        },
+        {
+          "name": "Issues",
+          "action": {
+            "type": "submenu",
+            "menu": "issues"
+          }
+        },
+        {
+          "name": "Actions / Workflows",
+          "action": {
+            "type": "submenu",
+            "menu": "actions"
+          }
+        },
+        {
+          "name": "Releases",
+          "action": {
+            "type": "submenu",
+            "menu": "releases"
+          }
+        },
+        {
+          "name": "Repository",
+          "action": {
+            "type": "submenu",
+            "menu": "repo"
+          }
+        },
+        {
+          "name": "Open repo in browser",
+          "action": {
+            "type": "shell",
+            "command": "gh repo view --web"
+          }
+        },
+        {
+          "name": "Exit",
+          "action": {
+            "type": "exit"
+          }
+        }
+      ]
+    },
+    "prs": {
+      "title": "Pull Requests",
+      "items": [
+        {
+          "name": "My open PRs",
+          "action": {
+            "type": "shell",
+            "command": "gh pr list --author @me"
+          }
+        },
+        {
+          "name": "All open PRs",
+          "action": {
+            "type": "shell",
+            "command": "gh pr list"
+          }
+        },
+        {
+          "name": "PRs awaiting my review",
+          "action": {
+            "type": "shell",
+            "command": "gh pr list --search 'review-requested:@me'"
+          }
+        },
+        {
+          "name": "View PR details",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "num",
+                "prompt": "PR number"
+              }
+            ],
+            "command_template": "gh pr view {num}"
+          }
+        },
+        {
+          "name": "View PR diff",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "num",
+                "prompt": "PR number"
+              }
+            ],
+            "command_template": "gh pr diff {num}"
+          }
+        },
+        {
+          "name": "Create PR for current branch",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "title",
+                "prompt": "PR title"
+              }
+            ],
+            "command_template": "gh pr create --title \"{title}\" --fill"
+          }
+        },
+        {
+          "name": "Checkout PR locally",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "num",
+                "prompt": "PR number"
+              }
+            ],
+            "command_template": "gh pr checkout {num}"
+          }
+        },
+        {
+          "name": "Merge PR",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "num",
+                "prompt": "PR number"
+              }
+            ],
+            "command_template": "gh pr merge {num} --merge"
+          }
+        },
+        {
+          "name": "PR checks status",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "num",
+                "prompt": "PR number"
+              }
+            ],
+            "command_template": "gh pr checks {num}"
+          }
+        },
+        {
+          "name": "Open PR in browser",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "num",
+                "prompt": "PR number"
+              }
+            ],
+            "command_template": "gh pr view {num} --web"
+          }
+        }
+      ]
+    },
+    "issues": {
+      "title": "Issues",
+      "items": [
+        {
+          "name": "My open issues",
+          "action": {
+            "type": "shell",
+            "command": "gh issue list --assignee @me"
+          }
+        },
+        {
+          "name": "All open issues",
+          "action": {
+            "type": "shell",
+            "command": "gh issue list"
+          }
+        },
+        {
+          "name": "View issue",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "num",
+                "prompt": "Issue number"
+              }
+            ],
+            "command_template": "gh issue view {num}"
+          }
+        },
+        {
+          "name": "Create issue",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "title",
+                "prompt": "Issue title"
+              }
+            ],
+            "command_template": "gh issue create --title \"{title}\""
+          }
+        },
+        {
+          "name": "Close issue",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "num",
+                "prompt": "Issue number"
+              }
+            ],
+            "command_template": "gh issue close {num}"
+          }
+        },
+        {
+          "name": "Issues by label",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "label",
+                "prompt": "Label name (e.g. bug, enhancement)"
+              }
+            ],
+            "command_template": "gh issue list --label \"{label}\""
+          }
+        }
+      ]
+    },
+    "actions": {
+      "title": "Actions / Workflows",
+      "items": [
+        {
+          "name": "List workflow runs",
+          "action": {
+            "type": "shell",
+            "command": "gh run list --limit 15"
+          }
+        },
+        {
+          "name": "List workflows",
+          "action": {
+            "type": "shell",
+            "command": "gh workflow list"
+          }
+        },
+        {
+          "name": "View run details",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "id",
+                "prompt": "Run ID"
+              }
+            ],
+            "command_template": "gh run view {id}"
+          }
+        },
+        {
+          "name": "View run logs",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "id",
+                "prompt": "Run ID"
+              }
+            ],
+            "command_template": "gh run view {id} --log"
+          }
+        },
+        {
+          "name": "Watch running workflow",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "id",
+                "prompt": "Run ID"
+              }
+            ],
+            "command_template": "gh run watch {id}"
+          }
+        },
+        {
+          "name": "Re-run failed workflow",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "id",
+                "prompt": "Run ID"
+              }
+            ],
+            "command_template": "gh run rerun {id} --failed"
+          }
+        },
+        {
+          "name": "Trigger workflow manually",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "workflow",
+                "prompt": "Workflow file name (e.g. ci.yml)"
+              },
+              {
+                "name": "branch",
+                "prompt": "Branch",
+                "default": "main"
+              }
+            ],
+            "command_template": "gh workflow run {workflow} --ref {branch}"
+          }
+        },
+        {
+          "name": "Failed runs only",
+          "action": {
+            "type": "shell",
+            "command": "gh run list --status failure --limit 10"
+          }
+        }
+      ]
+    },
+    "releases": {
+      "title": "Releases",
+      "items": [
+        {
+          "name": "List releases",
+          "action": {
+            "type": "shell",
+            "command": "gh release list --limit 10"
+          }
+        },
+        {
+          "name": "View latest release",
+          "action": {
+            "type": "shell",
+            "command": "gh release view"
+          }
+        },
+        {
+          "name": "Create release",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "tag",
+                "prompt": "Tag (e.g. v1.0.0)"
+              },
+              {
+                "name": "title",
+                "prompt": "Release title"
+              }
+            ],
+            "command_template": "gh release create {tag} --title \"{title}\" --generate-notes"
+          }
+        },
+        {
+          "name": "Download release assets",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "tag",
+                "prompt": "Tag"
+              }
+            ],
+            "command_template": "gh release download {tag}"
+          }
+        }
+      ]
+    },
+    "repo": {
+      "title": "Repository",
+      "items": [
+        {
+          "name": "Repo info",
+          "action": {
+            "type": "shell",
+            "command": "gh repo view"
+          }
+        },
+        {
+          "name": "Clone a repo",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "repo",
+                "prompt": "Repo (e.g. owner/repo)"
+              }
+            ],
+            "command_template": "gh repo clone {repo}"
+          }
+        },
+        {
+          "name": "Fork repo",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "repo",
+                "prompt": "Repo to fork (e.g. owner/repo)"
+              }
+            ],
+            "command_template": "gh repo fork {repo} --clone"
+          }
+        },
+        {
+          "name": "List repo collaborators",
+          "action": {
+            "type": "shell",
+            "command": "gh api repos/{owner}/{repo}/collaborators --jq '.[].login' 2>/dev/null || echo 'Requires admin access'"
+          }
+        },
+        {
+          "name": "Repo settings in browser",
+          "action": {
+            "type": "shell",
+            "command": "gh repo view --web"
+          }
+        }
+      ]
+    }
+  }
+}

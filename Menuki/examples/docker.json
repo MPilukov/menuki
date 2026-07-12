@@ -1,0 +1,541 @@
+{
+  "title": "Docker Manager",
+  "start_menu": "main",
+  "menus": {
+    "main": {
+      "title": "Docker",
+      "info": [
+        {
+          "label": "Docker Version",
+          "command": "docker --version 2>/dev/null | cut -d' ' -f3 | tr -d ',' || echo 'not installed'"
+        },
+        {
+          "label": "Running Containers",
+          "command": "docker ps -q 2>/dev/null | wc -l | tr -d ' ' || echo 'N/A'"
+        },
+        {
+          "label": "Images",
+          "command": "docker images -q 2>/dev/null | wc -l | tr -d ' ' || echo 'N/A'"
+        }
+      ],
+      "items": [
+        {
+          "name": "Containers",
+          "action": {
+            "type": "submenu",
+            "menu": "containers"
+          }
+        },
+        {
+          "name": "Images",
+          "action": {
+            "type": "submenu",
+            "menu": "images"
+          }
+        },
+        {
+          "name": "Volumes",
+          "action": {
+            "type": "submenu",
+            "menu": "volumes"
+          }
+        },
+        {
+          "name": "Networks",
+          "action": {
+            "type": "submenu",
+            "menu": "networks"
+          }
+        },
+        {
+          "name": "Docker Compose",
+          "action": {
+            "type": "submenu",
+            "menu": "compose"
+          }
+        },
+        {
+          "name": "System",
+          "action": {
+            "type": "submenu",
+            "menu": "system"
+          }
+        },
+        {
+          "name": "Exit",
+          "action": {
+            "type": "exit"
+          }
+        }
+      ]
+    },
+    "containers": {
+      "title": "Containers",
+      "info": [
+        {
+          "label": "Running",
+          "command": "docker ps -q | wc -l | tr -d ' '"
+        },
+        {
+          "label": "All",
+          "command": "docker ps -aq | wc -l | tr -d ' '"
+        }
+      ],
+      "items": [
+        {
+          "name": "List running containers",
+          "action": {
+            "type": "shell",
+            "command": "docker ps --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'"
+          }
+        },
+        {
+          "name": "List all containers",
+          "action": {
+            "type": "shell",
+            "command": "docker ps -a --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}'"
+          }
+        },
+        {
+          "name": "View container logs",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "container",
+                "prompt": "Container name or ID"
+              },
+              {
+                "name": "lines",
+                "prompt": "Number of lines",
+                "default": "100"
+              }
+            ],
+            "command_template": "docker logs --tail {lines} {container}"
+          }
+        },
+        {
+          "name": "Follow container logs",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "container",
+                "prompt": "Container name or ID"
+              }
+            ],
+            "command_template": "docker logs -f --tail 50 {container}"
+          }
+        },
+        {
+          "name": "Exec into container (bash)",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "container",
+                "prompt": "Container name or ID"
+              }
+            ],
+            "command_template": "docker exec -it {container} bash || docker exec -it {container} sh"
+          }
+        },
+        {
+          "name": "Inspect container",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "container",
+                "prompt": "Container name or ID"
+              }
+            ],
+            "command_template": "docker inspect {container} | head -80"
+          }
+        },
+        {
+          "name": "Container stats (live)",
+          "action": {
+            "type": "shell",
+            "command": "docker stats"
+          }
+        },
+        {
+          "name": "Stop container",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "container",
+                "prompt": "Container name or ID"
+              }
+            ],
+            "command_template": "docker stop {container} && echo 'Stopped successfully'"
+          }
+        },
+        {
+          "name": "Start container",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "container",
+                "prompt": "Container name or ID"
+              }
+            ],
+            "command_template": "docker start {container} && echo 'Started successfully'"
+          }
+        },
+        {
+          "name": "Restart container",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "container",
+                "prompt": "Container name or ID"
+              }
+            ],
+            "command_template": "docker restart {container} && echo 'Restarted successfully'"
+          }
+        },
+        {
+          "name": "Remove stopped containers",
+          "action": {
+            "type": "shell",
+            "command": "docker container prune -f"
+          }
+        },
+        {
+          "name": "Run a new container",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "image",
+                "prompt": "Image name (e.g. nginx:latest)"
+              },
+              {
+                "name": "name",
+                "prompt": "Container name"
+              },
+              {
+                "name": "ports",
+                "prompt": "Port mapping (e.g. 8080:80)",
+                "default": ""
+              }
+            ],
+            "command_template": "docker run -d --name {name} -p {ports} {image}"
+          }
+        }
+      ]
+    },
+    "images": {
+      "title": "Images",
+      "items": [
+        {
+          "name": "List images",
+          "action": {
+            "type": "shell",
+            "command": "docker images --format 'table {{.Repository}}\t{{.Tag}}\t{{.Size}}\t{{.CreatedSince}}'"
+          }
+        },
+        {
+          "name": "Pull image",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "image",
+                "prompt": "Image name (e.g. nginx:latest)"
+              }
+            ],
+            "command_template": "docker pull {image}"
+          }
+        },
+        {
+          "name": "Remove image",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "image",
+                "prompt": "Image name or ID"
+              }
+            ],
+            "command_template": "docker rmi {image}"
+          }
+        },
+        {
+          "name": "Remove dangling images",
+          "action": {
+            "type": "shell",
+            "command": "docker image prune -f"
+          }
+        },
+        {
+          "name": "Remove all unused images",
+          "action": {
+            "type": "shell",
+            "command": "docker image prune -a -f"
+          }
+        },
+        {
+          "name": "Search Docker Hub",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "term",
+                "prompt": "Search term"
+              }
+            ],
+            "command_template": "docker search {term} --limit 10"
+          }
+        },
+        {
+          "name": "Build image from Dockerfile",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "tag",
+                "prompt": "Image tag (e.g. myapp:v1)"
+              },
+              {
+                "name": "path",
+                "prompt": "Build context path",
+                "default": "."
+              }
+            ],
+            "command_template": "docker build -t {tag} {path}"
+          }
+        }
+      ]
+    },
+    "volumes": {
+      "title": "Volumes",
+      "items": [
+        {
+          "name": "List volumes",
+          "action": {
+            "type": "shell",
+            "command": "docker volume ls"
+          }
+        },
+        {
+          "name": "Inspect volume",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "volume",
+                "prompt": "Volume name"
+              }
+            ],
+            "command_template": "docker volume inspect {volume}"
+          }
+        },
+        {
+          "name": "Create volume",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "Volume name"
+              }
+            ],
+            "command_template": "docker volume create {name} && echo 'Volume created'"
+          }
+        },
+        {
+          "name": "Remove unused volumes",
+          "action": {
+            "type": "shell",
+            "command": "docker volume prune -f"
+          }
+        }
+      ]
+    },
+    "networks": {
+      "title": "Networks",
+      "items": [
+        {
+          "name": "List networks",
+          "action": {
+            "type": "shell",
+            "command": "docker network ls"
+          }
+        },
+        {
+          "name": "Inspect network",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "network",
+                "prompt": "Network name"
+              }
+            ],
+            "command_template": "docker network inspect {network}"
+          }
+        },
+        {
+          "name": "Create network",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "Network name"
+              }
+            ],
+            "command_template": "docker network create {name} && echo 'Network created'"
+          }
+        },
+        {
+          "name": "Remove unused networks",
+          "action": {
+            "type": "shell",
+            "command": "docker network prune -f"
+          }
+        }
+      ]
+    },
+    "compose": {
+      "title": "Docker Compose",
+      "items": [
+        {
+          "name": "Up (start all services)",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "file",
+                "prompt": "Compose file path",
+                "default": "docker-compose.yml"
+              }
+            ],
+            "command_template": "docker compose -f {file} up -d"
+          }
+        },
+        {
+          "name": "Down (stop all services)",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "file",
+                "prompt": "Compose file path",
+                "default": "docker-compose.yml"
+              }
+            ],
+            "command_template": "docker compose -f {file} down"
+          }
+        },
+        {
+          "name": "Status",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "file",
+                "prompt": "Compose file path",
+                "default": "docker-compose.yml"
+              }
+            ],
+            "command_template": "docker compose -f {file} ps"
+          }
+        },
+        {
+          "name": "Logs",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "file",
+                "prompt": "Compose file path",
+                "default": "docker-compose.yml"
+              },
+              {
+                "name": "service",
+                "prompt": "Service name (leave empty for all)",
+                "default": ""
+              }
+            ],
+            "command_template": "docker compose -f {file} logs --tail 50 {service}"
+          }
+        },
+        {
+          "name": "Rebuild and restart",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "file",
+                "prompt": "Compose file path",
+                "default": "docker-compose.yml"
+              }
+            ],
+            "command_template": "docker compose -f {file} up -d --build"
+          }
+        },
+        {
+          "name": "Pull latest images",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "file",
+                "prompt": "Compose file path",
+                "default": "docker-compose.yml"
+              }
+            ],
+            "command_template": "docker compose -f {file} pull"
+          }
+        }
+      ]
+    },
+    "system": {
+      "title": "System",
+      "items": [
+        {
+          "name": "Disk usage",
+          "action": {
+            "type": "shell",
+            "command": "docker system df"
+          }
+        },
+        {
+          "name": "Detailed disk usage",
+          "action": {
+            "type": "shell",
+            "command": "docker system df -v"
+          }
+        },
+        {
+          "name": "System info",
+          "action": {
+            "type": "shell",
+            "command": "docker info"
+          }
+        },
+        {
+          "name": "Clean up everything unused",
+          "action": {
+            "type": "shell",
+            "command": "docker system prune -f && echo 'Cleanup complete'"
+          }
+        },
+        {
+          "name": "Clean up everything (including volumes)",
+          "action": {
+            "type": "shell",
+            "command": "docker system prune --volumes -f && echo 'Full cleanup complete'"
+          }
+        }
+      ]
+    }
+  }
+}

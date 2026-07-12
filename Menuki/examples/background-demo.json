@@ -1,0 +1,22 @@
+{
+  "title": "Background Jobs Demo",
+  "start_menu": "main",
+  "menus": {
+    "main": {
+      "title": "Background Jobs",
+      "info": [
+        { "label": "Tip", "value": "Start a job, keep using the menu, open Jobs to watch or stop it." }
+      ],
+      "items": [
+        { "name": "Start ticking clock", "action": {
+            "type": "background", "name": "clock",
+            "command": "while true; do date; sleep 1; done" } },
+        { "name": "Start counter", "action": {
+            "type": "background", "name": "counter",
+            "command": "i=0; while true; do echo tick $i; i=$((i+1)); sleep 2; done" } },
+        { "name": "Jobs", "action": { "type": "jobs" } },
+        { "name": "Exit", "action": { "type": "exit" } }
+      ]
+    }
+  }
+}

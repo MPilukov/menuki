@@ -1,0 +1,32 @@
+{
+  "title": "Parallel Steps Demo",
+  "start_menu": "main",
+  "menus": {
+    "main": {
+      "title": "Parallel",
+      "info": [
+        { "label": "Note", "value": "Steps run concurrently; output is shown once all finish." }
+      ],
+      "items": [
+        { "name": "Fan out (3 at once)", "action": {
+            "type": "parallel",
+            "steps": [
+              { "type": "shell", "command": "sleep 1; echo 'built web'" },
+              { "type": "shell", "command": "sleep 1; echo 'built api'" },
+              { "type": "shell", "command": "sleep 1; echo 'built worker'" }
+            ] } },
+        { "name": "Throttled (max 2)", "action": {
+            "type": "parallel",
+            "max_parallel": 2,
+            "on_success": { "type": "shell", "command": "echo 'all builds done'" },
+            "steps": [
+              { "type": "shell", "command": "sleep 1; echo one" },
+              { "type": "shell", "command": "sleep 1; echo two" },
+              { "type": "shell", "command": "sleep 1; echo three" },
+              { "type": "shell", "command": "sleep 1; echo four" }
+            ] } },
+        { "name": "Exit", "action": { "type": "exit" } }
+      ]
+    }
+  }
+}

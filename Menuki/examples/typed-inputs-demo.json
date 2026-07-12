@@ -1,0 +1,80 @@
+{
+  "$schema": "../../menuki.schema.json",
+  "title": "Typed Inputs Demo",
+  "start_menu": "main",
+  "menus": {
+    "main": {
+      "title": "Typed Inputs",
+      "info": [
+        { "label": "What", "value": "Each input declares a type - validated before the command runs, in the TUI and headless." },
+        { "label": "Try", "value": "menuki exec --config <this> --action main/deploy --param environment=prod" }
+      ],
+      "items": [
+        {
+          "name": "Deploy to environment",
+          "description": "Pick an environment from a fixed list and deploy.",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "environment",
+                "type": "choice",
+                "prompt": "Environment",
+                "options": ["development", "staging", "production"],
+                "default": "development"
+              }
+            ],
+            "command_template": "echo 'deploying to {environment}'"
+          }
+        },
+        {
+          "name": "Tail logs",
+          "description": "Number of lines is bounded; empty means the default.",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              { "name": "pod", "type": "string", "prompt": "Pod name", "pattern": "^[a-z0-9-]+$", "example": "api-123" },
+              { "name": "tail", "type": "number", "prompt": "Lines", "default": 100, "min": 1, "max": 10000 }
+            ],
+            "command_template": "echo 'kubectl logs {pod} --tail={tail}'"
+          }
+        },
+        {
+          "name": "Report for date range",
+          "description": "Both dates must be real yyyy-MM-dd values.",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              { "name": "from", "type": "date", "prompt": "From", "format": "yyyy-MM-dd" },
+              { "name": "to", "type": "date", "prompt": "To", "format": "yyyy-MM-dd" }
+            ],
+            "command_template": "echo 'report --from {from} --to {to}'"
+          }
+        },
+        {
+          "name": "File a ticket",
+          "description": "Ticket id must match the OPS-#### format.",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              { "name": "ticket", "type": "string", "prompt": "Ticket", "pattern": "^OPS-[0-9]+$", "example": "OPS-1234", "required": true }
+            ],
+            "command_template": "echo 'linking {ticket}'"
+          }
+        },
+        {
+          "name": "Confirm cleanup",
+          "description": "A boolean flag normalized to true/false.",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              { "name": "force", "type": "boolean", "prompt": "Force?", "default": false }
+            ],
+            "command_template": "echo 'cleanup force={force}'"
+          }
+        },
+        { "name": "Exit", "action": { "type": "exit" } }
+      ]
+    }
+  }
+}

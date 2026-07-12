@@ -1,0 +1,486 @@
+{
+  "title": "System Admin",
+  "start_menu": "main",
+  "menus": {
+    "main": {
+      "title": "System Admin",
+      "info": [
+        {
+          "label": "Hostname",
+          "command": "hostname"
+        },
+        {
+          "label": "OS",
+          "command": "uname -s -r"
+        },
+        {
+          "label": "Uptime",
+          "command": "uptime | sed 's/.*up //' | sed 's/,.*//' | xargs"
+        },
+        {
+          "label": "Load",
+          "command": "uptime | sed 's/.*load average: //' | xargs"
+        }
+      ],
+      "items": [
+        {
+          "name": "System Info",
+          "action": {
+            "type": "submenu",
+            "menu": "sysinfo"
+          }
+        },
+        {
+          "name": "Processes",
+          "action": {
+            "type": "submenu",
+            "menu": "processes"
+          }
+        },
+        {
+          "name": "Disk & Storage",
+          "action": {
+            "type": "submenu",
+            "menu": "disk"
+          }
+        },
+        {
+          "name": "Network",
+          "action": {
+            "type": "submenu",
+            "menu": "network"
+          }
+        },
+        {
+          "name": "Logs",
+          "action": {
+            "type": "submenu",
+            "menu": "logs"
+          }
+        },
+        {
+          "name": "Services (systemd)",
+          "action": {
+            "type": "submenu",
+            "menu": "services"
+          }
+        },
+        {
+          "name": "Exit",
+          "action": {
+            "type": "exit"
+          }
+        }
+      ]
+    },
+    "sysinfo": {
+      "title": "System Info",
+      "items": [
+        {
+          "name": "Full system info",
+          "action": {
+            "type": "shell",
+            "command": "uname -a"
+          }
+        },
+        {
+          "name": "CPU info",
+          "action": {
+            "type": "shell",
+            "command": "sysctl -n machdep.cpu.brand_string 2>/dev/null || lscpu 2>/dev/null || cat /proc/cpuinfo | head -20"
+          }
+        },
+        {
+          "name": "Memory usage",
+          "action": {
+            "type": "shell",
+            "command": "vm_stat 2>/dev/null || free -h 2>/dev/null || echo 'Command not available'"
+          }
+        },
+        {
+          "name": "Disk usage overview",
+          "action": {
+            "type": "shell",
+            "command": "df -h"
+          }
+        },
+        {
+          "name": "Uptime & load",
+          "action": {
+            "type": "shell",
+            "command": "uptime"
+          }
+        },
+        {
+          "name": "Environment variables",
+          "action": {
+            "type": "shell",
+            "command": "env | sort"
+          }
+        },
+        {
+          "name": "Current user info",
+          "action": {
+            "type": "shell",
+            "command": "whoami && echo '---' && id && echo '---' && groups"
+          }
+        }
+      ]
+    },
+    "processes": {
+      "title": "Processes",
+      "items": [
+        {
+          "name": "Top processes (by CPU)",
+          "action": {
+            "type": "shell",
+            "command": "ps aux --sort=-%cpu 2>/dev/null | head -20 || ps aux | head -20"
+          }
+        },
+        {
+          "name": "Top processes (by memory)",
+          "action": {
+            "type": "shell",
+            "command": "ps aux --sort=-%mem 2>/dev/null | head -20 || ps aux | head -20"
+          }
+        },
+        {
+          "name": "Interactive top",
+          "action": {
+            "type": "shell",
+            "command": "top"
+          }
+        },
+        {
+          "name": "Find process by name",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "Process name"
+              }
+            ],
+            "command_template": "ps aux | grep -i {name} | grep -v grep"
+          }
+        },
+        {
+          "name": "Kill process by PID",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "pid",
+                "prompt": "PID"
+              }
+            ],
+            "command_template": "kill {pid} && echo 'Signal sent to {pid}'"
+          }
+        },
+        {
+          "name": "Kill process by name",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "Process name"
+              }
+            ],
+            "command_template": "pkill {name} && echo 'Killed processes matching: {name}'"
+          }
+        },
+        {
+          "name": "Process tree",
+          "action": {
+            "type": "shell",
+            "command": "pstree 2>/dev/null || ps -ejH 2>/dev/null || ps axjf 2>/dev/null || echo 'pstree not available'"
+          }
+        }
+      ]
+    },
+    "disk": {
+      "title": "Disk & Storage",
+      "items": [
+        {
+          "name": "Disk usage (all mounts)",
+          "action": {
+            "type": "shell",
+            "command": "df -h"
+          }
+        },
+        {
+          "name": "Directory size",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "path",
+                "prompt": "Directory path",
+                "default": "."
+              }
+            ],
+            "command_template": "du -sh {path}"
+          }
+        },
+        {
+          "name": "Largest directories in path",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "path",
+                "prompt": "Directory path",
+                "default": "/"
+              }
+            ],
+            "command_template": "du -h --max-depth=1 {path} 2>/dev/null | sort -rh | head -15 || du -h -d 1 {path} 2>/dev/null | sort -rh | head -15"
+          }
+        },
+        {
+          "name": "Largest files (current dir, recursive)",
+          "action": {
+            "type": "shell",
+            "command": "find . -type f -exec du -h {} + 2>/dev/null | sort -rh | head -20"
+          }
+        },
+        {
+          "name": "Inode usage",
+          "action": {
+            "type": "shell",
+            "command": "df -i"
+          }
+        }
+      ]
+    },
+    "network": {
+      "title": "Network",
+      "items": [
+        {
+          "name": "Network interfaces",
+          "action": {
+            "type": "shell",
+            "command": "ifconfig 2>/dev/null || ip addr"
+          }
+        },
+        {
+          "name": "Public IP",
+          "action": {
+            "type": "shell",
+            "command": "curl -s ifconfig.me && echo ''"
+          }
+        },
+        {
+          "name": "Listening ports",
+          "action": {
+            "type": "shell",
+            "command": "lsof -iTCP -sTCP:LISTEN -n -P 2>/dev/null || ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null"
+          }
+        },
+        {
+          "name": "Active connections",
+          "action": {
+            "type": "shell",
+            "command": "lsof -i -n -P 2>/dev/null | head -30 || ss -tunp 2>/dev/null | head -30 || netstat -tunp 2>/dev/null | head -30"
+          }
+        },
+        {
+          "name": "Ping host",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "host",
+                "prompt": "Host or IP"
+              }
+            ],
+            "command_template": "ping -c 5 {host}"
+          }
+        },
+        {
+          "name": "DNS lookup",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "domain",
+                "prompt": "Domain name"
+              }
+            ],
+            "command_template": "nslookup {domain}"
+          }
+        },
+        {
+          "name": "Traceroute",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "host",
+                "prompt": "Host or IP"
+              }
+            ],
+            "command_template": "traceroute {host} 2>/dev/null || tracert {host}"
+          }
+        },
+        {
+          "name": "Check port on host",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "host",
+                "prompt": "Host"
+              },
+              {
+                "name": "port",
+                "prompt": "Port"
+              }
+            ],
+            "command_template": "nc -zv {host} {port} 2>&1 || echo 'Connection failed'"
+          }
+        }
+      ]
+    },
+    "logs": {
+      "title": "Logs",
+      "items": [
+        {
+          "name": "System log (last 50 lines)",
+          "action": {
+            "type": "shell",
+            "command": "journalctl -n 50 --no-pager 2>/dev/null || tail -50 /var/log/syslog 2>/dev/null || log show --last 5m 2>/dev/null | tail -50"
+          }
+        },
+        {
+          "name": "Kernel messages",
+          "action": {
+            "type": "shell",
+            "command": "dmesg | tail -30"
+          }
+        },
+        {
+          "name": "Auth/security log",
+          "action": {
+            "type": "shell",
+            "command": "journalctl -u sshd -n 30 --no-pager 2>/dev/null || tail -30 /var/log/auth.log 2>/dev/null || echo 'Auth log not accessible'"
+          }
+        },
+        {
+          "name": "Follow custom log file",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "path",
+                "prompt": "Log file path"
+              }
+            ],
+            "command_template": "tail -f {path}"
+          }
+        },
+        {
+          "name": "Search in log file",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "path",
+                "prompt": "Log file path"
+              },
+              {
+                "name": "pattern",
+                "prompt": "Search pattern"
+              }
+            ],
+            "command_template": "grep -i \"{pattern}\" {path} | tail -30"
+          }
+        }
+      ]
+    },
+    "services": {
+      "title": "Services (systemd)",
+      "items": [
+        {
+          "name": "List running services",
+          "action": {
+            "type": "shell",
+            "command": "systemctl list-units --type=service --state=running 2>/dev/null || launchctl list 2>/dev/null | head -30"
+          }
+        },
+        {
+          "name": "List failed services",
+          "action": {
+            "type": "shell",
+            "command": "systemctl list-units --type=service --state=failed 2>/dev/null || echo 'systemctl not available (not Linux?)'"
+          }
+        },
+        {
+          "name": "Service status",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "service",
+                "prompt": "Service name"
+              }
+            ],
+            "command_template": "systemctl status {service} 2>/dev/null || launchctl print system/{service} 2>/dev/null"
+          }
+        },
+        {
+          "name": "Restart service",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "service",
+                "prompt": "Service name"
+              }
+            ],
+            "command_template": "sudo systemctl restart {service} && echo 'Service restarted'"
+          }
+        },
+        {
+          "name": "Stop service",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "service",
+                "prompt": "Service name"
+              }
+            ],
+            "command_template": "sudo systemctl stop {service} && echo 'Service stopped'"
+          }
+        },
+        {
+          "name": "Start service",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "service",
+                "prompt": "Service name"
+              }
+            ],
+            "command_template": "sudo systemctl start {service} && echo 'Service started'"
+          }
+        },
+        {
+          "name": "Service logs",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "service",
+                "prompt": "Service name"
+              }
+            ],
+            "command_template": "journalctl -u {service} -n 50 --no-pager"
+          }
+        }
+      ]
+    }
+  }
+}

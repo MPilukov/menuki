@@ -1,0 +1,512 @@
+{
+  "title": "Azure Manager",
+  "start_menu": "main",
+  "menus": {
+    "main": {
+      "title": "Azure",
+      "info": [
+        {
+          "label": "Subscription",
+          "command": "az account show --query 'name' -o tsv 2>/dev/null || echo 'not logged in'"
+        },
+        {
+          "label": "Account",
+          "command": "az account show --query 'user.name' -o tsv 2>/dev/null || echo 'N/A'"
+        }
+      ],
+      "items": [
+        {
+          "name": "Virtual Machines",
+          "action": {
+            "type": "submenu",
+            "menu": "vms"
+          }
+        },
+        {
+          "name": "App Service",
+          "action": {
+            "type": "submenu",
+            "menu": "appservice"
+          }
+        },
+        {
+          "name": "AKS (Kubernetes)",
+          "action": {
+            "type": "submenu",
+            "menu": "aks"
+          }
+        },
+        {
+          "name": "Storage",
+          "action": {
+            "type": "submenu",
+            "menu": "storage"
+          }
+        },
+        {
+          "name": "Resource Groups",
+          "action": {
+            "type": "submenu",
+            "menu": "resource-groups"
+          }
+        },
+        {
+          "name": "Switch subscription",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "sub",
+                "prompt": "Subscription name or ID"
+              }
+            ],
+            "command_template": "az account set --subscription \"{sub}\" && echo 'Switched to: {sub}'"
+          }
+        },
+        {
+          "name": "List subscriptions",
+          "action": {
+            "type": "shell",
+            "command": "az account list --query '[].{Name:name,ID:id,State:state}' -o table"
+          }
+        },
+        {
+          "name": "Login",
+          "action": {
+            "type": "shell",
+            "command": "az login"
+          }
+        },
+        {
+          "name": "Azure Portal (browser)",
+          "action": {
+            "type": "open-url",
+            "url": "https://portal.azure.com"
+          }
+        },
+        {
+          "name": "Exit",
+          "action": {
+            "type": "exit"
+          }
+        }
+      ]
+    },
+    "vms": {
+      "title": "Virtual Machines",
+      "items": [
+        {
+          "name": "List all VMs",
+          "action": {
+            "type": "shell",
+            "command": "az vm list -d --query '[].{Name:name,RG:resourceGroup,State:powerState,IP:publicIps,Size:hardwareProfile.vmSize}' -o table"
+          }
+        },
+        {
+          "name": "Start VM",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "VM name"
+              },
+              {
+                "name": "rg",
+                "prompt": "Resource group"
+              }
+            ],
+            "command_template": "az vm start --name {name} --resource-group {rg} && echo 'VM started'"
+          }
+        },
+        {
+          "name": "Stop VM (deallocate)",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "VM name"
+              },
+              {
+                "name": "rg",
+                "prompt": "Resource group"
+              }
+            ],
+            "command_template": "az vm deallocate --name {name} --resource-group {rg} && echo 'VM deallocated'"
+          }
+        },
+        {
+          "name": "Restart VM",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "VM name"
+              },
+              {
+                "name": "rg",
+                "prompt": "Resource group"
+              }
+            ],
+            "command_template": "az vm restart --name {name} --resource-group {rg} && echo 'VM restarted'"
+          }
+        },
+        {
+          "name": "VM details",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "VM name"
+              },
+              {
+                "name": "rg",
+                "prompt": "Resource group"
+              }
+            ],
+            "command_template": "az vm show --name {name} --resource-group {rg} -d -o yaml"
+          }
+        },
+        {
+          "name": "SSH to VM",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "ip",
+                "prompt": "VM IP address"
+              },
+              {
+                "name": "user",
+                "prompt": "Username",
+                "default": "azureuser"
+              }
+            ],
+            "command_template": "ssh {user}@{ip}"
+          }
+        }
+      ]
+    },
+    "appservice": {
+      "title": "App Service",
+      "items": [
+        {
+          "name": "List web apps",
+          "action": {
+            "type": "shell",
+            "command": "az webapp list --query '[].{Name:name,RG:resourceGroup,State:state,URL:defaultHostName}' -o table"
+          }
+        },
+        {
+          "name": "App details",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "App name"
+              },
+              {
+                "name": "rg",
+                "prompt": "Resource group"
+              }
+            ],
+            "command_template": "az webapp show --name {name} --resource-group {rg} -o yaml"
+          }
+        },
+        {
+          "name": "Restart app",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "App name"
+              },
+              {
+                "name": "rg",
+                "prompt": "Resource group"
+              }
+            ],
+            "command_template": "az webapp restart --name {name} --resource-group {rg} && echo 'App restarted'"
+          }
+        },
+        {
+          "name": "View app logs",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "App name"
+              },
+              {
+                "name": "rg",
+                "prompt": "Resource group"
+              }
+            ],
+            "command_template": "az webapp log tail --name {name} --resource-group {rg}"
+          }
+        },
+        {
+          "name": "List app settings",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "App name"
+              },
+              {
+                "name": "rg",
+                "prompt": "Resource group"
+              }
+            ],
+            "command_template": "az webapp config appsettings list --name {name} --resource-group {rg} -o table"
+          }
+        },
+        {
+          "name": "List deployment slots",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "App name"
+              },
+              {
+                "name": "rg",
+                "prompt": "Resource group"
+              }
+            ],
+            "command_template": "az webapp deployment slot list --name {name} --resource-group {rg} -o table"
+          }
+        }
+      ]
+    },
+    "aks": {
+      "title": "AKS (Kubernetes)",
+      "items": [
+        {
+          "name": "List AKS clusters",
+          "action": {
+            "type": "shell",
+            "command": "az aks list --query '[].{Name:name,RG:resourceGroup,Version:kubernetesVersion,Nodes:agentPoolProfiles[0].count,State:provisioningState}' -o table"
+          }
+        },
+        {
+          "name": "Get credentials (set kubectl context)",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "Cluster name"
+              },
+              {
+                "name": "rg",
+                "prompt": "Resource group"
+              }
+            ],
+            "command_template": "az aks get-credentials --name {name} --resource-group {rg} && echo 'kubectl configured for {name}'"
+          }
+        },
+        {
+          "name": "Cluster details",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "Cluster name"
+              },
+              {
+                "name": "rg",
+                "prompt": "Resource group"
+              }
+            ],
+            "command_template": "az aks show --name {name} --resource-group {rg} -o yaml"
+          }
+        },
+        {
+          "name": "Scale node pool",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "cluster",
+                "prompt": "Cluster name"
+              },
+              {
+                "name": "rg",
+                "prompt": "Resource group"
+              },
+              {
+                "name": "pool",
+                "prompt": "Node pool name",
+                "default": "nodepool1"
+              },
+              {
+                "name": "count",
+                "prompt": "Node count"
+              }
+            ],
+            "command_template": "az aks nodepool scale --cluster-name {cluster} --resource-group {rg} --name {pool} --node-count {count}"
+          }
+        },
+        {
+          "name": "Open Kubernetes dashboard",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "Cluster name"
+              },
+              {
+                "name": "rg",
+                "prompt": "Resource group"
+              }
+            ],
+            "command_template": "az aks browse --name {name} --resource-group {rg}"
+          }
+        }
+      ]
+    },
+    "storage": {
+      "title": "Storage",
+      "items": [
+        {
+          "name": "List storage accounts",
+          "action": {
+            "type": "shell",
+            "command": "az storage account list --query '[].{Name:name,RG:resourceGroup,Location:location,Kind:kind}' -o table"
+          }
+        },
+        {
+          "name": "List containers in account",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "account",
+                "prompt": "Storage account name"
+              }
+            ],
+            "command_template": "az storage container list --account-name {account} --query '[].{Name:name,Access:properties.publicAccess}' -o table --auth-mode login"
+          }
+        },
+        {
+          "name": "List blobs in container",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "account",
+                "prompt": "Storage account name"
+              },
+              {
+                "name": "container",
+                "prompt": "Container name"
+              }
+            ],
+            "command_template": "az storage blob list --account-name {account} --container-name {container} --query '[].{Name:name,Size:properties.contentLength}' -o table --auth-mode login"
+          }
+        },
+        {
+          "name": "Upload file",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "account",
+                "prompt": "Storage account name"
+              },
+              {
+                "name": "container",
+                "prompt": "Container name"
+              },
+              {
+                "name": "file",
+                "prompt": "Local file path"
+              }
+            ],
+            "command_template": "az storage blob upload --account-name {account} --container-name {container} --file {file} --auth-mode login"
+          }
+        },
+        {
+          "name": "Download file",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "account",
+                "prompt": "Storage account name"
+              },
+              {
+                "name": "container",
+                "prompt": "Container name"
+              },
+              {
+                "name": "blob",
+                "prompt": "Blob name"
+              },
+              {
+                "name": "dest",
+                "prompt": "Local destination",
+                "default": "."
+              }
+            ],
+            "command_template": "az storage blob download --account-name {account} --container-name {container} --name {blob} --file {dest} --auth-mode login"
+          }
+        }
+      ]
+    },
+    "resource-groups": {
+      "title": "Resource Groups",
+      "items": [
+        {
+          "name": "List resource groups",
+          "action": {
+            "type": "shell",
+            "command": "az group list --query '[].{Name:name,Location:location,State:properties.provisioningState}' -o table"
+          }
+        },
+        {
+          "name": "Resources in group",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "rg",
+                "prompt": "Resource group name"
+              }
+            ],
+            "command_template": "az resource list --resource-group {rg} --query '[].{Name:name,Type:type,Location:location}' -o table"
+          }
+        },
+        {
+          "name": "Create resource group",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "Group name"
+              },
+              {
+                "name": "location",
+                "prompt": "Location",
+                "default": "eastus"
+              }
+            ],
+            "command_template": "az group create --name {name} --location {location}"
+          }
+        }
+      ]
+    }
+  }
+}

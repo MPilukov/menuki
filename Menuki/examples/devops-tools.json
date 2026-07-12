@@ -1,0 +1,156 @@
+{
+  "title": "DevOps Tools",
+  "start_menu": "main",
+  "menus": {
+    "main": {
+      "title": "Main Menu",
+      "info": [
+        {
+          "label": "User",
+          "value": "Max"
+        },
+        {
+          "label": "Hostname",
+          "command": "hostname"
+        }
+      ],
+      "items": [
+        {
+          "name": "AI Agents",
+          "action": {
+            "type": "submenu",
+            "menu": "ai-agents"
+          }
+        },
+        {
+          "name": "SSH to a server",
+          "action": {
+            "type": "shell",
+            "command": "ssh -i ~/.ssh/id_rsa user@your-server.example.com"
+          }
+        },
+        {
+          "name": "List pods",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get pods"
+          }
+        },
+        {
+          "name": "Kubernetes",
+          "action": {
+            "type": "submenu",
+            "menu": "k8s"
+          }
+        },
+        {
+          "name": "Open Grafana",
+          "action": {
+            "type": "open-url",
+            "url": "https://grafana.example.com"
+          }
+        },
+        {
+          "name": "SSH to server",
+          "action": {
+            "type": "input\u002Bshell",
+            "inputs": [
+              {
+                "name": "host",
+                "prompt": "Hostname",
+                "default": "prod-01"
+              }
+            ],
+            "command_template": "ssh deploy@{host}"
+          }
+        },
+        {
+          "name": "Open notes",
+          "action": {
+            "type": "open-file",
+            "path": "~/notes.md"
+          }
+        },
+        {
+          "name": "Edit config in VS Code",
+          "action": {
+            "type": "open-file",
+            "path": "~/.kube/config",
+            "editor": "code"
+          }
+        },
+        {
+          "name": "Exit",
+          "action": {
+            "type": "exit"
+          }
+        }
+      ]
+    },
+    "ai-agents": {
+      "title": "AI Agents",
+      "items": [
+        {
+          "name": "Claude Code",
+          "action": {
+            "type": "shell",
+            "command": "claude"
+          }
+        },
+        {
+          "name": "Codex",
+          "action": {
+            "type": "shell",
+            "command": "codex"
+          }
+        },
+        {
+          "name": "Gemini CLI",
+          "action": {
+            "type": "shell",
+            "command": "gemini"
+          }
+        }
+      ]
+    },
+    "k8s": {
+      "title": "Kubernetes",
+      "items": [
+        {
+          "name": "Get pods",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get pods"
+          }
+        },
+        {
+          "name": "Get services",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get svc"
+          }
+        },
+        {
+          "name": "Get namespaces",
+          "action": {
+            "type": "shell",
+            "command": "kubectl get namespaces"
+          }
+        },
+        {
+          "name": "Logs from pod",
+          "action": {
+            "type": "input\u002Bshell",
+            "inputs": [
+              {
+                "name": "pod",
+                "prompt": "Pod name"
+              }
+            ],
+            "command_template": "kubectl logs {pod} --tail=50"
+          }
+        }
+      ]
+    }
+  }
+}

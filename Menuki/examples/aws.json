@@ -1,0 +1,561 @@
+{
+  "title": "AWS Manager",
+  "start_menu": "main",
+  "menus": {
+    "main": {
+      "title": "AWS",
+      "info": [
+        {
+          "label": "Profile",
+          "command": "echo ${AWS_PROFILE:-default}"
+        },
+        {
+          "label": "Region",
+          "command": "aws configure get region 2>/dev/null || echo 'not set'"
+        },
+        {
+          "label": "Account",
+          "command": "aws sts get-caller-identity --query 'Account' --output text 2>/dev/null || echo 'not authenticated'"
+        }
+      ],
+      "items": [
+        {
+          "name": "EC2",
+          "action": {
+            "type": "submenu",
+            "menu": "ec2"
+          }
+        },
+        {
+          "name": "S3",
+          "action": {
+            "type": "submenu",
+            "menu": "s3"
+          }
+        },
+        {
+          "name": "Lambda",
+          "action": {
+            "type": "submenu",
+            "menu": "lambda"
+          }
+        },
+        {
+          "name": "ECS / Fargate",
+          "action": {
+            "type": "submenu",
+            "menu": "ecs"
+          }
+        },
+        {
+          "name": "CloudWatch",
+          "action": {
+            "type": "submenu",
+            "menu": "cloudwatch"
+          }
+        },
+        {
+          "name": "IAM",
+          "action": {
+            "type": "submenu",
+            "menu": "iam"
+          }
+        },
+        {
+          "name": "Switch profile",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "profile",
+                "prompt": "AWS profile name",
+                "default": "default"
+              }
+            ],
+            "command_template": "export AWS_PROFILE={profile} && echo 'Switched to profile: {profile}'"
+          }
+        },
+        {
+          "name": "Who am I?",
+          "action": {
+            "type": "shell",
+            "command": "aws sts get-caller-identity"
+          }
+        },
+        {
+          "name": "AWS Console (browser)",
+          "action": {
+            "type": "open-url",
+            "url": "https://console.aws.amazon.com"
+          }
+        },
+        {
+          "name": "Exit",
+          "action": {
+            "type": "exit"
+          }
+        }
+      ]
+    },
+    "ec2": {
+      "title": "EC2",
+      "items": [
+        {
+          "name": "List running instances",
+          "action": {
+            "type": "shell",
+            "command": "aws ec2 describe-instances --filters 'Name=instance-state-name,Values=running' --query 'Reservations[].Instances[].{ID:InstanceId,Type:InstanceType,State:State.Name,Name:Tags[?Key==`Name`]|[0].Value,IP:PublicIpAddress,PrivateIP:PrivateIpAddress}' --output table"
+          }
+        },
+        {
+          "name": "List all instances",
+          "action": {
+            "type": "shell",
+            "command": "aws ec2 describe-instances --query 'Reservations[].Instances[].{ID:InstanceId,Type:InstanceType,State:State.Name,Name:Tags[?Key==`Name`]|[0].Value}' --output table"
+          }
+        },
+        {
+          "name": "Start instance",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "id",
+                "prompt": "Instance ID (i-xxx)"
+              }
+            ],
+            "command_template": "aws ec2 start-instances --instance-ids {id}"
+          }
+        },
+        {
+          "name": "Stop instance",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "id",
+                "prompt": "Instance ID (i-xxx)"
+              }
+            ],
+            "command_template": "aws ec2 stop-instances --instance-ids {id}"
+          }
+        },
+        {
+          "name": "Instance details",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "id",
+                "prompt": "Instance ID"
+              }
+            ],
+            "command_template": "aws ec2 describe-instances --instance-ids {id} --output yaml"
+          }
+        },
+        {
+          "name": "List security groups",
+          "action": {
+            "type": "shell",
+            "command": "aws ec2 describe-security-groups --query 'SecurityGroups[].{ID:GroupId,Name:GroupName,VPC:VpcId}' --output table"
+          }
+        },
+        {
+          "name": "List key pairs",
+          "action": {
+            "type": "shell",
+            "command": "aws ec2 describe-key-pairs --query 'KeyPairs[].{Name:KeyName,ID:KeyPairId}' --output table"
+          }
+        },
+        {
+          "name": "SSH to instance",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "ip",
+                "prompt": "Instance IP or DNS"
+              },
+              {
+                "name": "key",
+                "prompt": "Key file path",
+                "default": "~/.ssh/id_rsa"
+              },
+              {
+                "name": "user",
+                "prompt": "Username",
+                "default": "ec2-user"
+              }
+            ],
+            "command_template": "ssh -i {key} {user}@{ip}"
+          }
+        }
+      ]
+    },
+    "s3": {
+      "title": "S3",
+      "items": [
+        {
+          "name": "List buckets",
+          "action": {
+            "type": "shell",
+            "command": "aws s3 ls"
+          }
+        },
+        {
+          "name": "List bucket contents",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "bucket",
+                "prompt": "Bucket name"
+              },
+              {
+                "name": "prefix",
+                "prompt": "Prefix (path)",
+                "default": ""
+              }
+            ],
+            "command_template": "aws s3 ls s3://{bucket}/{prefix} --human-readable"
+          }
+        },
+        {
+          "name": "Bucket size",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "bucket",
+                "prompt": "Bucket name"
+              }
+            ],
+            "command_template": "aws s3 ls s3://{bucket} --recursive --summarize --human-readable | tail -2"
+          }
+        },
+        {
+          "name": "Upload file",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "file",
+                "prompt": "Local file path"
+              },
+              {
+                "name": "dest",
+                "prompt": "S3 destination (bucket/path)"
+              }
+            ],
+            "command_template": "aws s3 cp {file} s3://{dest}"
+          }
+        },
+        {
+          "name": "Download file",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "src",
+                "prompt": "S3 source (bucket/path/file)"
+              },
+              {
+                "name": "dest",
+                "prompt": "Local destination",
+                "default": "."
+              }
+            ],
+            "command_template": "aws s3 cp s3://{src} {dest}"
+          }
+        },
+        {
+          "name": "Sync directory to S3",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "src",
+                "prompt": "Local directory"
+              },
+              {
+                "name": "bucket",
+                "prompt": "S3 destination (bucket/prefix)"
+              }
+            ],
+            "command_template": "aws s3 sync {src} s3://{bucket}"
+          }
+        },
+        {
+          "name": "Create bucket",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "Bucket name"
+              }
+            ],
+            "command_template": "aws s3 mb s3://{name}"
+          }
+        }
+      ]
+    },
+    "lambda": {
+      "title": "Lambda",
+      "items": [
+        {
+          "name": "List functions",
+          "action": {
+            "type": "shell",
+            "command": "aws lambda list-functions --query 'Functions[].{Name:FunctionName,Runtime:Runtime,Memory:MemorySize,Timeout:Timeout}' --output table"
+          }
+        },
+        {
+          "name": "Get function details",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "Function name"
+              }
+            ],
+            "command_template": "aws lambda get-function --function-name {name}"
+          }
+        },
+        {
+          "name": "Invoke function",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "Function name"
+              },
+              {
+                "name": "payload",
+                "prompt": "JSON payload",
+                "default": "{}"
+              }
+            ],
+            "command_template": "aws lambda invoke --function-name {name} --payload '{payload}' /dev/stdout"
+          }
+        },
+        {
+          "name": "View recent logs",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "Function name"
+              }
+            ],
+            "command_template": "aws logs tail /aws/lambda/{name} --since 1h --format short"
+          }
+        },
+        {
+          "name": "Update function code",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "name",
+                "prompt": "Function name"
+              },
+              {
+                "name": "zip",
+                "prompt": "Zip file path"
+              }
+            ],
+            "command_template": "aws lambda update-function-code --function-name {name} --zip-file fileb://{zip}"
+          }
+        }
+      ]
+    },
+    "ecs": {
+      "title": "ECS / Fargate",
+      "items": [
+        {
+          "name": "List clusters",
+          "action": {
+            "type": "shell",
+            "command": "aws ecs list-clusters --query 'clusterArns[*]' --output table"
+          }
+        },
+        {
+          "name": "List services",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "cluster",
+                "prompt": "Cluster name"
+              }
+            ],
+            "command_template": "aws ecs list-services --cluster {cluster} --query 'serviceArns[*]' --output table"
+          }
+        },
+        {
+          "name": "Describe service",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "cluster",
+                "prompt": "Cluster name"
+              },
+              {
+                "name": "service",
+                "prompt": "Service name"
+              }
+            ],
+            "command_template": "aws ecs describe-services --cluster {cluster} --services {service} --query 'services[0].{Status:status,Desired:desiredCount,Running:runningCount,TaskDef:taskDefinition}' --output yaml"
+          }
+        },
+        {
+          "name": "List tasks",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "cluster",
+                "prompt": "Cluster name"
+              }
+            ],
+            "command_template": "aws ecs list-tasks --cluster {cluster} --query 'taskArns[*]' --output table"
+          }
+        },
+        {
+          "name": "Force new deployment",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "cluster",
+                "prompt": "Cluster name"
+              },
+              {
+                "name": "service",
+                "prompt": "Service name"
+              }
+            ],
+            "command_template": "aws ecs update-service --cluster {cluster} --service {service} --force-new-deployment"
+          }
+        },
+        {
+          "name": "Scale service",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "cluster",
+                "prompt": "Cluster name"
+              },
+              {
+                "name": "service",
+                "prompt": "Service name"
+              },
+              {
+                "name": "count",
+                "prompt": "Desired count"
+              }
+            ],
+            "command_template": "aws ecs update-service --cluster {cluster} --service {service} --desired-count {count}"
+          }
+        }
+      ]
+    },
+    "cloudwatch": {
+      "title": "CloudWatch",
+      "items": [
+        {
+          "name": "List log groups",
+          "action": {
+            "type": "shell",
+            "command": "aws logs describe-log-groups --query 'logGroups[].{Name:logGroupName,Size:storedBytes}' --output table"
+          }
+        },
+        {
+          "name": "Tail log group",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "group",
+                "prompt": "Log group name"
+              }
+            ],
+            "command_template": "aws logs tail {group} --since 1h --format short"
+          }
+        },
+        {
+          "name": "Follow log group (live)",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "group",
+                "prompt": "Log group name"
+              }
+            ],
+            "command_template": "aws logs tail {group} --follow --format short"
+          }
+        },
+        {
+          "name": "List alarms",
+          "action": {
+            "type": "shell",
+            "command": "aws cloudwatch describe-alarms --query 'MetricAlarms[].{Name:AlarmName,State:StateValue,Metric:MetricName}' --output table"
+          }
+        },
+        {
+          "name": "Alarms in ALARM state",
+          "action": {
+            "type": "shell",
+            "command": "aws cloudwatch describe-alarms --state-value ALARM --query 'MetricAlarms[].{Name:AlarmName,Reason:StateReason}' --output table"
+          }
+        }
+      ]
+    },
+    "iam": {
+      "title": "IAM",
+      "items": [
+        {
+          "name": "List users",
+          "action": {
+            "type": "shell",
+            "command": "aws iam list-users --query 'Users[].{Name:UserName,Created:CreateDate}' --output table"
+          }
+        },
+        {
+          "name": "List roles",
+          "action": {
+            "type": "shell",
+            "command": "aws iam list-roles --query 'Roles[].{Name:RoleName,Arn:Arn}' --output table"
+          }
+        },
+        {
+          "name": "List policies (custom)",
+          "action": {
+            "type": "shell",
+            "command": "aws iam list-policies --scope Local --query 'Policies[].{Name:PolicyName,Arn:Arn}' --output table"
+          }
+        },
+        {
+          "name": "User details",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              {
+                "name": "user",
+                "prompt": "Username"
+              }
+            ],
+            "command_template": "aws iam get-user --user-name {user} && echo '--- Groups ---' && aws iam list-groups-for-user --user-name {user} --query 'Groups[].GroupName' --output table && echo '--- Policies ---' && aws iam list-attached-user-policies --user-name {user} --query 'AttachedPolicies[].PolicyName' --output table"
+          }
+        }
+      ]
+    }
+  }
+}
