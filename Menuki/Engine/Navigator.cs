@@ -100,6 +100,10 @@ public static class Navigator
                     new ConfigEditor(config, configPath, theme, registry).EditMenu(currentMenuId);
                     break;
 
+                case SettingsActionExecutor.Sentinel:
+                    SettingsScreen.Run(theme);
+                    break;
+
                 case null:
                     if (menuStack.Count > 0)
                         currentMenuId = menuStack.Pop();

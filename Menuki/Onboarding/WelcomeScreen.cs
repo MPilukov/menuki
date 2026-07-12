@@ -21,6 +21,7 @@ public static class WelcomeScreen
                 Item("Take the interactive tour", "tour", "Guided, hands-on sections covering every feature."),
                 Item("Open an existing config", "open", "Type a path to a .json menu config and run it."),
                 Item("Create a new menu", "create", "Scaffold your own config with the wizard."),
+                Item("Settings", "settings", "Theme and appearance (also T anywhere to cycle themes)."),
                 Item("Command-line help", "help", "Show the available commands and flags."),
                 Item("Quit", "quit", null),
             };
@@ -46,6 +47,9 @@ public static class WelcomeScreen
                     var result = OnboardingWizard.Run(theme);
                     if (result != null)
                         Navigator.Run(result.Value.config, theme, result.Value.configPath, ActionExecutorFactory.BuildDefault());
+                    break;
+                case "settings":
+                    SettingsScreen.Run(theme);
                     break;
                 case "help":
                     ShowHelp();

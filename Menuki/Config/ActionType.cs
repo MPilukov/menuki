@@ -15,9 +15,10 @@ public static class ActionTypes
     public const string Background = "background";
     public const string Jobs = "jobs";
     public const string OpenConfig = "open-config";
+    public const string Settings = "settings";
 
     public static readonly string[] BuiltIn =
-        { Shell, Submenu, Exit, OpenUrl, InputShell, OpenFile, Script, Sequence, Parallel, Delay, Background, Jobs, OpenConfig };
+        { Shell, Submenu, Exit, OpenUrl, InputShell, OpenFile, Script, Sequence, Parallel, Delay, Background, Jobs, OpenConfig, Settings };
 }
 
 /// <summary>Output formats for a shell action's captured result.</summary>

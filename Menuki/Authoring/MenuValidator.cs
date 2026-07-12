@@ -116,6 +116,9 @@ public static class MenuValidator
             case ActionTypes.Jobs:
                 break;
 
+            case ActionTypes.Settings:
+                break;
+
             case ActionTypes.Exit:
                 break;
 

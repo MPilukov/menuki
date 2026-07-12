@@ -1,0 +1,32 @@
+{
+  "$schema": "../../menuki.schema.json",
+  "title": "Themes & Settings Demo",
+  "start_menu": "main",
+  "theme": "ocean",
+  "settings": {
+    "show_selection_marker": true
+  },
+  "menus": {
+    "main": {
+      "title": "Appearance",
+      "info": [
+        { "label": "Theme", "value": "This config starts on 'ocean'. Press T anywhere to cycle: dark, light, ocean, forest, matrix, high-contrast, synthwave." },
+        { "label": "Marker", "value": "The ▶ on the selected row can be turned off in Settings (highlight by color only)." },
+        { "label": "Saved", "value": "Your theme and marker choice persist in ~/.menuki/settings.json across runs." }
+      ],
+      "items": [
+        {
+          "name": "Open Settings",
+          "description": "Cycle the theme and toggle the selection marker, with a live preview.",
+          "action": { "type": "settings" }
+        },
+        {
+          "name": "A sample command",
+          "description": "Just so there is something to run while you try themes.",
+          "action": { "type": "shell", "command": "echo 'looking good'" }
+        },
+        { "name": "Exit", "action": { "type": "exit" } }
+      ]
+    }
+  }
+}

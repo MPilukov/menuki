@@ -6,7 +6,8 @@ Build interactive terminal menus and runbooks from a single JSON file - the same
 
 - **Zero dependencies** - only `System.Text.Json` (built into .NET 8)
 - **JSON config** - define menus, actions, info panels in a single file
-- **13 action types** - shell, submenu, exit, open-url, input+shell, open-file, open-config, script, sequence, parallel, delay, background, jobs
+- **14 action types** - shell, submenu, exit, open-url, input+shell, open-file, open-config, script, sequence, parallel, delay, background, jobs, settings
+- **Themes & settings** - 7 built-in color themes (T cycles them), plus a Settings screen to toggle the selection marker; choices persist
 - **Guided tour** - `menuki tour` (and a welcome screen on no-args) walks through every feature, adapting to the tools on your machine
 - **Composite actions** - `sequence` runs steps as a mini pipeline (stop-on-error, retry, hooks); `parallel` runs them concurrently
 - **Background jobs** - `background` starts long-running processes without blocking; a `jobs` manager views/stops them
@@ -415,11 +416,35 @@ defaults to the command's first word.
 In the jobs screen: type a job number to tail its log, `k<n>` to kill a job, `c`
 to clear finished jobs, Enter to refresh, `q` to go back.
 
-### Themes & Colors
+**settings** - open the appearance settings screen (cycle theme, toggle the selection marker):
+```json
+{ "type": "settings" }
+```
 
-Two built-in themes: **dark** (default) and **light**. Press **T** at runtime to cycle between them.
+See [Themes, Settings & Colors](#themes-settings--colors).
 
-Add a `colors` block to define a custom theme (becomes the third option in the T-cycle):
+### Themes, Settings & Colors
+
+Seven built-in themes: **dark** (default), **light**, **ocean**, **forest**, **matrix**, **high-contrast**, **synthwave**. Press **T** at runtime to cycle through them, or open the **Settings** screen (below) to pick one with a live preview. Set the starting theme per config with `"theme": "ocean"`.
+
+**Settings screen.** Reachable from the welcome screen (run `menuki` with no config) or by adding a `settings` action to any menu:
+
+```json
+{ "name": "Preferences", "action": { "type": "settings" } }
+```
+
+It lets you cycle the theme and toggle the **selection marker** (the `▶` on the highlighted row; off = highlight by color only). Choices apply live and are saved globally to `~/.menuki/settings.json`, so they follow you across configs and restarts and override a config's declared defaults.
+
+**Per-config defaults.** A config can set its own starting look:
+
+```json
+{
+  "theme": "forest",
+  "settings": { "show_selection_marker": false }
+}
+```
+
+**Custom palette.** Add a `colors` block to define your own theme (`"theme": "custom"`; also joins the T-cycle):
 
 ```json
 {
@@ -438,7 +463,7 @@ Add a `colors` block to define a custom theme (becomes the third option in the T
 
 Any omitted field falls back to the dark theme defaults. Available color names: `Black`, `DarkBlue`, `DarkGreen`, `DarkCyan`, `DarkRed`, `DarkMagenta`, `DarkYellow`, `DarkGray`, `Gray`, `Blue`, `Green`, `Cyan`, `Red`, `Magenta`, `Yellow`, `White`.
 
-The selected theme is saved to `~/.menuki/theme.json` and persists across restarts.
+The active theme and marker preference persist in `~/.menuki/settings.json` (relocatable via the `MENUKI_HOME` environment variable). Try `Menuki/examples/themes-demo.json`.
 
 ## Full Example
 
