@@ -26,9 +26,11 @@ class Program
         }
 
         // Session-scoped background jobs: kill any still running when the app exits.
-        // Registered up front so it covers the tour / welcome paths too.
-        AppDomain.CurrentDomain.ProcessExit += (_, _) => Engine.JobRegistry.StopAll();
-        Console.CancelKeyPress += (_, _) => Engine.JobRegistry.StopAll();
+        // Registered up front so it covers the tour / welcome paths too. Also restore the
+        // cursor the menu hides, so exiting (including via `exit` / Ctrl-C) never leaves the
+        // terminal without a caret.
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => { Engine.JobRegistry.StopAll(); Engine.MenuEngine.SetCursorVisible(true); };
+        Console.CancelKeyPress += (_, _) => { Engine.JobRegistry.StopAll(); Engine.MenuEngine.SetCursorVisible(true); };
 
         // `tour` subcommand: the guided, hands-on feature tour.
         if (args.Length > 0 && args[0] == "tour")
