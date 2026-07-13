@@ -234,20 +234,27 @@
     "colors": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Custom color scheme (ConsoleColor names, case-insensitive).",
+      "description": "Custom color scheme (ConsoleColor names, case-insensitive, or 'default' for the terminal's own foreground). Present without a 'theme' it applies automatically. Any omitted role uses the built-in default.",
       "properties": {
-        "text": { "$ref": "#/definitions/color" },
-        "selected": { "$ref": "#/definitions/color" },
-        "title": { "$ref": "#/definitions/color" },
-        "info_border": { "$ref": "#/definitions/color" },
-        "info_label": { "$ref": "#/definitions/color" },
-        "info_value": { "$ref": "#/definitions/color" },
-        "message": { "$ref": "#/definitions/color" }
+        "text": { "$ref": "#/definitions/color", "description": "Menu item text." },
+        "selected": { "$ref": "#/definitions/color", "description": "Highlighted menu row." },
+        "title": { "$ref": "#/definitions/color", "description": "Menu title." },
+        "info_border": { "$ref": "#/definitions/color", "description": "Info panel borders." },
+        "info_label": { "$ref": "#/definitions/color", "description": "Info panel labels." },
+        "info_value": { "$ref": "#/definitions/color", "description": "Info panel values." },
+        "message": { "$ref": "#/definitions/color", "description": "Transient messages." },
+        "prompt": { "$ref": "#/definitions/color", "description": "Input prompt label, e.g. 'Branch name:'." },
+        "input": { "$ref": "#/definitions/color", "description": "Text the user types at a prompt." },
+        "error": { "$ref": "#/definitions/color", "description": "Validation error text." },
+        "option": { "$ref": "#/definitions/color", "description": "Non-selected choice option." },
+        "option_selected": { "$ref": "#/definitions/color", "description": "Highlighted choice option." },
+        "command": { "$ref": "#/definitions/color", "description": "Echoed command line ('> ...')." }
       }
     },
     "color": {
       "type": "string",
       "enum": [
+        "default",
         "Black", "DarkBlue", "DarkGreen", "DarkCyan", "DarkRed", "DarkMagenta",
         "DarkYellow", "Gray", "DarkGray", "Blue", "Green", "Cyan", "Red",
         "Magenta", "Yellow", "White"

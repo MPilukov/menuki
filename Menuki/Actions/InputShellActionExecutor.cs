@@ -32,7 +32,7 @@ public class InputShellActionExecutor : IActionExecutor
         var command = ShellEscaper.Interpolate(_commandTemplate, values);
         var display = ShellEscaper.InterpolateForDisplay(_commandTemplate, values, secretNames);
 
-        Console.ForegroundColor = ConsoleColor.Cyan;
+        Use(t => t.UseCommand());
         Console.WriteLine($"\n> {display}");
         Console.ResetColor();
         Console.WriteLine();
@@ -48,6 +48,13 @@ public class InputShellActionExecutor : IActionExecutor
         return null;
     }
 
+    /// <summary>Apply a theme role via the ambient session theme, or reset if there is none.</summary>
+    private static void Use(Action<ThemeManager> apply)
+    {
+        if (ThemeManager.Ambient is { } theme) apply(theme);
+        else Console.ResetColor();
+    }
+
     /// <summary>
     /// Read a value, re-prompting until it passes the input's type validation.
     /// Uses the shared history so Up/Down recalls previously entered values.
@@ -60,9 +67,9 @@ public class InputShellActionExecutor : IActionExecutor
 
         while (true)
         {
-            Console.ForegroundColor = ConsoleColor.Cyan;
+            Use(t => t.UsePrompt());
             Console.Write($"{input.Prompt}{hint}{defaultHint}: ");
-            Console.ResetColor();
+            Use(t => t.UseInput());
 
             // Secrets are masked while typing and never offered history recall.
             var line = input.Secret
@@ -76,7 +83,7 @@ public class InputShellActionExecutor : IActionExecutor
                 return result.Value;
             }
 
-            Console.ForegroundColor = ConsoleColor.Red;
+            Use(t => t.UseError());
             Console.WriteLine(result.Error);
             if (result.Allowed is { Length: > 0 } allowed)
                 Console.WriteLine($"  Allowed: {string.Join(", ", allowed)}");
@@ -97,18 +104,18 @@ public class InputShellActionExecutor : IActionExecutor
         while (true)
         {
             Console.SetCursorPosition(0, top);
-            Console.ForegroundColor = ConsoleColor.Cyan;
+            Use(t => t.UsePrompt());
             Console.WriteLine(input.Prompt);
             for (var i = 0; i < options.Count; i++)
             {
                 if (i == index)
                 {
-                    Console.ForegroundColor = ConsoleColor.Green;
+                    Use(t => t.UseOptionSelected());
                     Console.WriteLine($"  > {options[i]}    ");
                 }
                 else
                 {
-                    Console.ResetColor();
+                    Use(t => t.UseOption());
                     Console.WriteLine($"    {options[i]}    ");
                 }
             }

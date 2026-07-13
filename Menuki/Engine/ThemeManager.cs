@@ -10,6 +10,13 @@ namespace Menuki.Engine;
 /// </summary>
 public class ThemeManager
 {
+    /// <summary>
+    /// The theme in effect for the current interactive session. Set to the most recently
+    /// constructed manager so non-TUI-aware executors (input+shell / shell prompts) can
+    /// color their output. Null in headless runs, where those executors are not used.
+    /// </summary>
+    public static ThemeManager? Ambient { get; private set; }
+
     private readonly ColorScheme? _configColors;
     private readonly List<string> _available;
     private string _activeThemeName;
@@ -23,8 +30,12 @@ public class ThemeManager
             _available.Add(ThemeCatalog.Custom);
 
         AppSettings.Load();
-        // Precedence: the user's saved choice, else the config's theme, else the default.
-        _activeThemeName = FirstValid(AppSettings.Theme, configTheme, "auto");
+        // Precedence: the user's saved choice, then the config's theme, then a default. When
+        // the config supplies colors but no theme, default to "custom" so they just apply.
+        var fallback = _configColors != null ? ThemeCatalog.Custom : "auto";
+        _activeThemeName = FirstValid(AppSettings.Theme, configTheme, fallback);
+
+        Ambient = this;
     }
 
     public ColorScheme Current => ResolveScheme(_activeThemeName);
@@ -41,7 +52,19 @@ public class ThemeManager
     public void UseInfoValue() => Apply(Current.InfoValue);
     public void UseMessage() => Apply(Current.Message);
 
-    private static void Apply(string colorName)
+    // Input-flow roles. These are optional in a scheme; when unset they fall back to the
+    // built-in defaults that match the historical hardcoded colors.
+    public void UsePrompt() => ApplyRole(Current.Prompt, "Cyan");
+    public void UseInput() => ApplyRole(Current.Input, ThemeCatalog.DefaultColor);
+    public void UseError() => ApplyRole(Current.Error, "Red");
+    public void UseOption() => ApplyRole(Current.Option, ThemeCatalog.DefaultColor);
+    public void UseOptionSelected() => ApplyRole(Current.OptionSelected, "Green");
+    public void UseCommand() => ApplyRole(Current.Command, "Cyan");
+
+    private static void ApplyRole(string? value, string fallback) =>
+        Apply(string.IsNullOrWhiteSpace(value) ? fallback : value);
+
+    private static void Apply(string? colorName)
     {
         if (string.IsNullOrWhiteSpace(colorName) ||
             colorName.Equals(ThemeCatalog.DefaultColor, StringComparison.OrdinalIgnoreCase))
@@ -84,15 +107,24 @@ public class ThemeManager
         if (overrides == null)
             return defaults;
 
+        string Pick(string o, string d) => string.IsNullOrEmpty(o) ? d : o;
         return new ColorScheme
         {
-            Text = string.IsNullOrEmpty(overrides.Text) ? defaults.Text : overrides.Text,
-            Selected = string.IsNullOrEmpty(overrides.Selected) ? defaults.Selected : overrides.Selected,
-            Title = string.IsNullOrEmpty(overrides.Title) ? defaults.Title : overrides.Title,
-            InfoBorder = string.IsNullOrEmpty(overrides.InfoBorder) ? defaults.InfoBorder : overrides.InfoBorder,
-            InfoLabel = string.IsNullOrEmpty(overrides.InfoLabel) ? defaults.InfoLabel : overrides.InfoLabel,
-            InfoValue = string.IsNullOrEmpty(overrides.InfoValue) ? defaults.InfoValue : overrides.InfoValue,
-            Message = string.IsNullOrEmpty(overrides.Message) ? defaults.Message : overrides.Message,
+            Text = Pick(overrides.Text, defaults.Text),
+            Selected = Pick(overrides.Selected, defaults.Selected),
+            Title = Pick(overrides.Title, defaults.Title),
+            InfoBorder = Pick(overrides.InfoBorder, defaults.InfoBorder),
+            InfoLabel = Pick(overrides.InfoLabel, defaults.InfoLabel),
+            InfoValue = Pick(overrides.InfoValue, defaults.InfoValue),
+            Message = Pick(overrides.Message, defaults.Message),
+            // Input-flow roles: the base themes leave these empty, so an unset override stays
+            // empty and the Use*() fallback supplies the built-in color.
+            Prompt = Pick(overrides.Prompt, defaults.Prompt),
+            Input = Pick(overrides.Input, defaults.Input),
+            Error = Pick(overrides.Error, defaults.Error),
+            Option = Pick(overrides.Option, defaults.Option),
+            OptionSelected = Pick(overrides.OptionSelected, defaults.OptionSelected),
+            Command = Pick(overrides.Command, defaults.Command),
         };
     }
 

@@ -15,6 +15,12 @@ public class ShellActionExecutor : IActionExecutor
         _query = query;
     }
 
+    private static void Use(Action<ThemeManager> apply)
+    {
+        if (ThemeManager.Ambient is { } theme) apply(theme);
+        else Console.ResetColor();
+    }
+
     public string? Execute()
     {
         // With a format/query, capture the output and show a result screen; otherwise
@@ -23,7 +29,7 @@ public class ShellActionExecutor : IActionExecutor
             return ExecuteFormatted();
 
         Console.Clear();
-        Console.ForegroundColor = ConsoleColor.Cyan;
+        Use(t => t.UseCommand());
         Console.WriteLine($"> {_command}");
         Console.ResetColor();
         Console.WriteLine();
@@ -42,7 +48,7 @@ public class ShellActionExecutor : IActionExecutor
     private string? ExecuteFormatted()
     {
         Console.Clear();
-        Console.ForegroundColor = ConsoleColor.Cyan;
+        Use(t => t.UseCommand());
         Console.WriteLine($"> {_command}");
         Console.ResetColor();
         Console.WriteLine();
