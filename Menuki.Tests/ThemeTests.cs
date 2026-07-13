@@ -18,30 +18,37 @@ public class ThemeTests
     public void Catalog_has_the_expected_builtins_in_order()
     {
         Assert.Equal(
-            new[] { "dark", "light", "ocean", "forest", "matrix", "high-contrast", "synthwave" },
+            new[] { "auto", "dark", "light", "ocean", "forest", "matrix", "high-contrast", "synthwave" },
             ThemeCatalog.Names.ToArray());
+        Assert.Equal("auto", ThemeCatalog.Names[0]); // default must be first
         Assert.True(ThemeCatalog.IsKnown("ocean"));
         Assert.False(ThemeCatalog.IsKnown("custom")); // custom is not a built-in palette
+    }
+
+    [Fact]
+    public void Auto_theme_uses_terminal_default_text_for_any_background()
+    {
+        Assert.Equal(ThemeCatalog.DefaultColor, ThemeCatalog.Get("auto").Text);
     }
 
     [Fact]
     public void Next_cycles_and_wraps_around()
     {
         var names = ThemeCatalog.Names;
-        Assert.Equal("light", ThemeCatalog.Next("dark", names));
-        Assert.Equal("dark", ThemeCatalog.Next("synthwave", names)); // wraps
+        Assert.Equal("dark", ThemeCatalog.Next("auto", names));
+        Assert.Equal("auto", ThemeCatalog.Next("synthwave", names)); // wraps to the first
     }
 
     [Fact]
     public void Next_from_unknown_starts_at_first()
     {
-        Assert.Equal("dark", ThemeCatalog.Next("does-not-exist", ThemeCatalog.Names));
+        Assert.Equal("auto", ThemeCatalog.Next("does-not-exist", ThemeCatalog.Names));
     }
 
     [Fact]
-    public void Get_falls_back_to_dark_for_unknown_name()
+    public void Get_falls_back_to_auto_for_unknown_name()
     {
-        Assert.Equal(ThemeCatalog.Get("dark").Selected, ThemeCatalog.Get("nope").Selected);
+        Assert.Equal(ThemeCatalog.Get("auto").Selected, ThemeCatalog.Get("nope").Selected);
     }
 
     [Fact]
@@ -59,8 +66,8 @@ public class ThemeTests
     {
         var mgr = new ThemeManager("dark", new ColorScheme { Selected = "Green" });
         mgr.SetTheme("custom");
-        Assert.Equal(ConsoleColor.Green, mgr.Selected);
-        // A field the config did not set falls back to the dark default.
-        Assert.Equal(ConsoleColor.Red, mgr.Title);
+        Assert.Equal("Green", mgr.Current.Selected);
+        // A field the config did not set falls back to the auto (default) base.
+        Assert.Equal(ThemeCatalog.Get("auto").Title, mgr.Current.Title);
     }
 }

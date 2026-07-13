@@ -72,9 +72,9 @@ public static class OnboardingWizard
             .ToArray();
 
         Console.Clear();
-        Console.ForegroundColor = theme.Title;
+        theme.UseTitle();
         Console.WriteLine("  Welcome to Menuki!");
-        Console.ForegroundColor = theme.Text;
+        theme.UseText();
         Console.WriteLine();
 
         var idx = PromptHelper.PromptChoice("Select config", choices, 0, theme);
@@ -133,9 +133,9 @@ public static class OnboardingWizard
         ConfigSaver.Save(config, configPath);
 
         Console.Clear();
-        Console.ForegroundColor = theme.InfoValue;
+        theme.UseInfoValue();
         Console.WriteLine($"  Config saved to {configPath}");
-        Console.ForegroundColor = theme.Text;
+        theme.UseText();
         Console.WriteLine("  Press any key to continue...");
         Console.ReadKey(intercept: true);
 

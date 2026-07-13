@@ -7,7 +7,7 @@ Build interactive terminal menus and runbooks from a single JSON file - the same
 - **Zero dependencies** - only `System.Text.Json` (built into .NET 8)
 - **JSON config** - define menus, actions, info panels in a single file
 - **14 action types** - shell, submenu, exit, open-url, input+shell, open-file, open-config, script, sequence, parallel, delay, background, jobs, settings
-- **Themes & settings** - 7 built-in color themes (T cycles them), plus a Settings screen to toggle the selection marker; choices persist
+- **Themes & settings** - `auto` theme adapts to any terminal background, plus 7 more color themes (T cycles them) and a Settings screen to toggle the selection marker; choices persist
 - **Guided tour** - `menuki tour` (and a welcome screen on no-args) walks through every feature, adapting to the tools on your machine
 - **Built-in examples** - ~20 curated packs embedded in the binary; `menuki examples <name>` runs, `--save` copies, `--print` shows one (no repo clone needed)
 - **Composite actions** - `sequence` runs steps as a mini pipeline (stop-on-error, retry, hooks); `parallel` runs them concurrently
@@ -464,7 +464,7 @@ See [Themes, Settings & Colors](#themes-settings--colors).
 
 ### Themes, Settings & Colors
 
-Seven built-in themes: **dark** (default), **light**, **ocean**, **forest**, **matrix**, **high-contrast**, **synthwave**. Press **T** at runtime to cycle through them, or open the **Settings** screen (below) to pick one with a live preview. Set the starting theme per config with `"theme": "ocean"`.
+Eight built-in themes: **auto** (default), **dark**, **light**, **ocean**, **forest**, **matrix**, **high-contrast**, **synthwave**. **auto** uses the terminal's own foreground for body text, so it stays readable on both light and dark backgrounds - the other themes pick specific colors and look best on a matching background. Press **T** at runtime to cycle through them, or open the **Settings** screen (below) to pick one with a live preview. Set the starting theme per config with `"theme": "dark"`.
 
 **Settings screen.** Reachable from the welcome screen (run `menuki` with no config) or by adding a `settings` action to any menu:
 

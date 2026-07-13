@@ -34,7 +34,7 @@ public class InputShellActionExecutor : IActionExecutor
 
         Console.ForegroundColor = ConsoleColor.Cyan;
         Console.WriteLine($"\n> {display}");
-        Console.ForegroundColor = ConsoleColor.White;
+        Console.ResetColor();
         Console.WriteLine();
 
         ShellRunner.RunInteractive(command);
@@ -42,7 +42,7 @@ public class InputShellActionExecutor : IActionExecutor
         Console.WriteLine();
         Console.ForegroundColor = ConsoleColor.DarkGray;
         Console.WriteLine("Press any key to continue...");
-        Console.ForegroundColor = ConsoleColor.White;
+        Console.ResetColor();
         Console.ReadKey(intercept: true);
 
         return null;
@@ -62,7 +62,7 @@ public class InputShellActionExecutor : IActionExecutor
         {
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.Write($"{input.Prompt}{hint}{defaultHint}: ");
-            Console.ForegroundColor = ConsoleColor.White;
+            Console.ResetColor();
 
             // Secrets are masked while typing and never offered history recall.
             var line = input.Secret
@@ -80,7 +80,7 @@ public class InputShellActionExecutor : IActionExecutor
             Console.WriteLine(result.Error);
             if (result.Allowed is { Length: > 0 } allowed)
                 Console.WriteLine($"  Allowed: {string.Join(", ", allowed)}");
-            Console.ForegroundColor = ConsoleColor.White;
+            Console.ResetColor();
         }
     }
 
@@ -108,7 +108,7 @@ public class InputShellActionExecutor : IActionExecutor
                 }
                 else
                 {
-                    Console.ForegroundColor = ConsoleColor.White;
+                    Console.ResetColor();
                     Console.WriteLine($"    {options[i]}    ");
                 }
             }
@@ -123,7 +123,7 @@ public class InputShellActionExecutor : IActionExecutor
                     index = index < options.Count - 1 ? index + 1 : 0;
                     break;
                 case ConsoleKey.Enter:
-                    Console.ForegroundColor = ConsoleColor.White;
+                    Console.ResetColor();
                     return options[index];
             }
         }

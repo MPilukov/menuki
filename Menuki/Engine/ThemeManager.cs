@@ -24,20 +24,31 @@ public class ThemeManager
 
         AppSettings.Load();
         // Precedence: the user's saved choice, else the config's theme, else the default.
-        _activeThemeName = FirstValid(AppSettings.Theme, configTheme, "dark");
+        _activeThemeName = FirstValid(AppSettings.Theme, configTheme, "auto");
     }
 
     public ColorScheme Current => ResolveScheme(_activeThemeName);
     public string ActiveThemeName => _activeThemeName;
     public IReadOnlyList<string> AvailableThemes => _available;
 
-    public ConsoleColor Text => Parse(Current.Text);
-    public ConsoleColor Selected => Parse(Current.Selected);
-    public ConsoleColor Title => Parse(Current.Title);
-    public ConsoleColor InfoBorder => Parse(Current.InfoBorder);
-    public ConsoleColor InfoLabel => Parse(Current.InfoLabel);
-    public ConsoleColor InfoValue => Parse(Current.InfoValue);
-    public ConsoleColor Message => Parse(Current.Message);
+    // Apply a role's color to the console. A "default"/empty color resets to the terminal's
+    // own foreground (Console.ResetColor), so body text stays readable on any background.
+    public void UseText() => Apply(Current.Text);
+    public void UseSelected() => Apply(Current.Selected);
+    public void UseTitle() => Apply(Current.Title);
+    public void UseInfoBorder() => Apply(Current.InfoBorder);
+    public void UseInfoLabel() => Apply(Current.InfoLabel);
+    public void UseInfoValue() => Apply(Current.InfoValue);
+    public void UseMessage() => Apply(Current.Message);
+
+    private static void Apply(string colorName)
+    {
+        if (string.IsNullOrWhiteSpace(colorName) ||
+            colorName.Equals(ThemeCatalog.DefaultColor, StringComparison.OrdinalIgnoreCase))
+            Console.ResetColor();
+        else
+            Console.ForegroundColor = Parse(colorName);
+    }
 
     /// <summary>Advance to the next theme in the cycle and remember it.</summary>
     public void Toggle()
@@ -57,7 +68,7 @@ public class ThemeManager
 
     private ColorScheme ResolveScheme(string name) =>
         string.Equals(name, ThemeCatalog.Custom, StringComparison.OrdinalIgnoreCase)
-            ? MergeWithDefaults(_configColors, ThemeCatalog.Get("dark"))
+            ? MergeWithDefaults(_configColors, ThemeCatalog.Get("auto"))
             : ThemeCatalog.Get(name);
 
     private string FirstValid(params string?[] candidates)
@@ -65,7 +76,7 @@ public class ThemeManager
         foreach (var c in candidates)
             if (!string.IsNullOrEmpty(c) && _available.Contains(c, StringComparer.OrdinalIgnoreCase))
                 return c!;
-        return _available.Count > 0 ? _available[0] : "dark";
+        return _available.Count > 0 ? _available[0] : "auto";
     }
 
     private static ColorScheme MergeWithDefaults(ColorScheme? overrides, ColorScheme defaults)
