@@ -74,7 +74,7 @@ public static class WelcomeScreen
         Console.Write("Path to a config (.json): ");
         Console.ResetColor();
 
-        var path = LineEditor.ReadLine().Trim();
+        var path = (LineEditor.ReadLine() ?? "").Trim();
         if (path.Length == 0)
             return;
 

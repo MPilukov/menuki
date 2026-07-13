@@ -25,6 +25,15 @@ public class InputShellActionExecutor : IActionExecutor
             var value = InputValidator.EffectiveType(input) == InputTypes.Choice
                 ? SelectChoice(input)
                 : PromptValue(input, history);
+            if (value == null)
+            {
+                // Esc pressed - abort the whole action without running anything.
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.WriteLine("\nCanceled.");
+                Console.ResetColor();
+                Thread.Sleep(400);
+                return null;
+            }
             values[input.Name] = value;
         }
 
@@ -51,8 +60,9 @@ public class InputShellActionExecutor : IActionExecutor
     /// <summary>
     /// Read a value, re-prompting until it passes the input's type validation.
     /// Uses the shared history so Up/Down recalls previously entered values.
+    /// Returns null when the user presses Esc (cancel the whole action).
     /// </summary>
-    private static string PromptValue(InputDefinition input, List<string> history)
+    private static string? PromptValue(InputDefinition input, List<string> history)
     {
         var hint = InputValidator.PromptHint(input);
         // A secret must never be shown as a default; and its history is not recalled.
@@ -68,6 +78,8 @@ public class InputShellActionExecutor : IActionExecutor
             var line = input.Secret
                 ? LineEditor.ReadLine(history: null, mask: true)
                 : LineEditor.ReadLine(history);
+            if (line == null)
+                return null;   // Esc - checked before Resolve so a default can't swallow the cancel
             var result = InputValidator.Resolve(input, line);
             if (result.Ok)
             {
@@ -84,8 +96,11 @@ public class InputShellActionExecutor : IActionExecutor
         }
     }
 
-    /// <summary>Arrow-select one of the declared options for a choice input.</summary>
-    private static string SelectChoice(InputDefinition input)
+    /// <summary>
+    /// Arrow-select one of the declared options for a choice input.
+    /// Returns null when the user presses Esc (cancel the whole action).
+    /// </summary>
+    private static string? SelectChoice(InputDefinition input)
     {
         var options = input.Options ?? new List<string>();
         if (options.Count == 0)
@@ -125,6 +140,9 @@ public class InputShellActionExecutor : IActionExecutor
                 case ConsoleKey.Enter:
                     Console.ResetColor();
                     return options[index];
+                case ConsoleKey.Escape:
+                    Console.ResetColor();
+                    return null;
             }
         }
     }

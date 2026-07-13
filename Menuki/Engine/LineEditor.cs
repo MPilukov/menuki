@@ -7,10 +7,11 @@ namespace Menuki.Engine;
 /// history recall is wanted. Supports typing, Backspace/Delete, Left/Right,
 /// Home/End and Up/Down to walk a history list (most-recent-last). The prompt is
 /// expected to be already written at the current cursor position.
+/// Esc cancels the edit: returns null so the caller can abort the whole flow.
 /// </summary>
 public static class LineEditor
 {
-    public static string ReadLine(IReadOnlyList<string>? history = null, bool mask = false)
+    public static string? ReadLine(IReadOnlyList<string>? history = null, bool mask = false)
     {
         history ??= Array.Empty<string>();
 
@@ -50,6 +51,10 @@ public static class LineEditor
                 case ConsoleKey.Enter:
                     Console.WriteLine();
                     return buffer.ToString();
+
+                case ConsoleKey.Escape:
+                    Console.WriteLine();
+                    return null;
 
                 case ConsoleKey.Backspace:
                     if (pos > 0) { buffer.Remove(pos - 1, 1); pos--; Redraw(); }
