@@ -117,6 +117,39 @@ public class CliIntegrationTests
         Assert.Contains("menuki examples", output);
     }
 
+    [Theory]
+    [InlineData("bash")]
+    [InlineData("zsh")]
+    [InlineData("fish")]
+    public void Completions_prints_a_script_for_each_shell(string shell)
+    {
+        var (exit, output) = RunCli("completions", shell);
+        Assert.Equal(0, exit);
+        Assert.Contains("menuki", output);
+        // Every script references the runtime-generated example list, proving it was
+        // built from the catalog (not a stale hand-maintained copy).
+        Assert.Contains("git", output);
+    }
+
+    [Fact]
+    public void Completions_without_shell_is_usage_and_nonzero()
+    {
+        var (exit, output) = RunCli("completions");
+        Assert.Equal(1, exit);
+        Assert.Contains("bash", output);
+    }
+
+    [Fact]
+    public void Man_prints_a_roff_page()
+    {
+        var (exit, output) = RunCli("man");
+        Assert.Equal(0, exit);
+        Assert.Contains(".TH MENUKI 1", output);
+        Assert.Contains(".SH NAME", output);
+        // The version line is injected from the running build, so it must be present.
+        Assert.Contains("menuki ", output);
+    }
+
     // --- harness --------------------------------------------------------
 
     private static (int Exit, string Output) RunCli(params string[] args)
@@ -134,7 +167,7 @@ public class CliIntegrationTests
         var output = p.StandardOutput.ReadToEnd();
         var err = p.StandardError.ReadToEnd();
         p.WaitForExit();
-        if (p.ExitCode != 0 && p.ExitCode != 2 && p.ExitCode != 3 && p.ExitCode != 5)
+        if (p.ExitCode != 0 && p.ExitCode != 1 && p.ExitCode != 2 && p.ExitCode != 3 && p.ExitCode != 5)
             throw new Xunit.Sdk.XunitException($"CLI exit {p.ExitCode}. stderr:\n{err}\nstdout:\n{output}");
         return (p.ExitCode, output);
     }

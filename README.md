@@ -77,6 +77,8 @@ there is nothing else to install).
 brew install MPilukov/menuki/menuki
 ```
 
+Homebrew also installs shell completions (bash/zsh/fish) and a `man menuki` page.
+
 **curl | sh** (macOS / Linux) - downloads the latest release binary:
 
 ```bash
@@ -109,6 +111,14 @@ menuki --config mymenu.json               # run your own config
 menuki list --config <cfg>                # headless catalog (JSON)
 menuki exec --config <cfg> --action <id>  # headless run
 menuki validate --config <cfg>            # check a config (JSON errors/warnings)
+```
+
+**Shell completions** (if you did not install via Homebrew), pick your shell:
+
+```bash
+source <(menuki completions bash)                          # bash: add to ~/.bashrc
+menuki completions zsh  > "${fpath[1]}/_menuki"            # zsh
+menuki completions fish > ~/.config/fish/completions/menuki.fish   # fish
 ```
 
 ### Try the built-in examples

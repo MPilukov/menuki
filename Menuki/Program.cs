@@ -19,6 +19,19 @@ class Program
             Console.WriteLine($"menuki {Version()}");
             Environment.Exit(0);
         }
+        // `completions` subcommand: print a shell tab-completion script and exit. Checked
+        // before the global --help so `menuki completions --help` shows its own usage.
+        if (args.Length > 0 && args[0] == "completions")
+        {
+            Environment.Exit(Completions.CompletionsCli.Run(args));
+        }
+
+        // `man` subcommand: print the roff man page (installed by the Homebrew formula).
+        if (args.Length > 0 && args[0] == "man")
+        {
+            Environment.Exit(Completions.ManPage.Run(Version()));
+        }
+
         if (args.Contains("--help") || args.Contains("-h") || (args.Length > 0 && args[0] == "help"))
         {
             PrintHelp();
@@ -140,6 +153,8 @@ class Program
 
             Other:
               menuki mcp                        Run the MCP server (stdio)
+              menuki completions <shell>        Print a bash/zsh/fish completion script
+              menuki man                         Print the manual page (roff)
               menuki --version, -v              Print the version
               menuki --help, -h, help           Show this help
 
