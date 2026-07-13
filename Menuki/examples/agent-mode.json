@@ -1,0 +1,75 @@
+{
+  "$schema": "../../menuki.schema.json",
+  "title": "Agent / Headless Mode",
+  "start_menu": "main",
+  "menus": {
+    "main": {
+      "title": "Agent / Headless Mode",
+      "info": [
+        { "label": "What", "value": "The same menu an AI agent or script drives non-interactively: JSON in, JSON out. No TUI needed." },
+        { "label": "1. Discover", "value": "menuki list --config <this>   lists every action with its id, description and typed-input contract." },
+        { "label": "2. Run", "value": "menuki exec --config <this> --action main/restart-service --param service=api" },
+        { "label": "3. Parse", "value": "Actions can emit structured JSON (format/query) so the agent reads a result, not a screen." }
+      ],
+      "items": [
+        {
+          "name": "Get status",
+          "description": "Return service status as a JSON object. The agent parses stdout directly.",
+          "help": "Uses format:json so the shell output is pretty-printed and machine-readable. Try: menuki exec --config <this> --action main/get-status",
+          "action": {
+            "type": "shell",
+            "command": "echo '{\"service\":\"api\",\"status\":\"healthy\",\"uptime_seconds\":86400}'",
+            "format": "json"
+          }
+        },
+        {
+          "name": "List services",
+          "description": "Return just the service names, extracted from JSON with a JSONPath query.",
+          "help": "query pulls $.services[*].name out of the command's JSON before it is returned - the agent gets an array, not the whole payload.",
+          "action": {
+            "type": "shell",
+            "command": "echo '{\"services\":[{\"name\":\"api\",\"replicas\":3},{\"name\":\"web\",\"replicas\":2},{\"name\":\"worker\",\"replicas\":5}]}'",
+            "query": "$.services[*].name",
+            "format": "json"
+          }
+        },
+        {
+          "name": "Recent events",
+          "description": "Return a JSON array of flat rows rendered as a table.",
+          "help": "format:table turns a JSON array of objects into aligned columns - handy for a human reading the agent's transcript.",
+          "action": {
+            "type": "shell",
+            "command": "echo '[{\"time\":\"10:00\",\"level\":\"info\",\"msg\":\"deploy ok\"},{\"time\":\"10:05\",\"level\":\"warn\",\"msg\":\"high memory\"}]'",
+            "format": "table"
+          }
+        },
+        {
+          "name": "Restart service",
+          "description": "Restart a named service. The name is validated before the command runs.",
+          "help": "A typed input gives the agent a precise contract from `list`: pass --param service=<name>; only lowercase names with hyphens are accepted.",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              { "name": "service", "type": "string", "prompt": "Service", "pattern": "^[a-z][a-z0-9-]*$", "example": "api", "required": true }
+            ],
+            "command_template": "echo 'restarting {service}...' && echo '{\"service\":\"{service}\",\"restarted\":true}'"
+          }
+        },
+        {
+          "name": "Scale service",
+          "description": "Set replica count for a service, both values validated.",
+          "help": "Two typed inputs: a choice (fixed set) and a bounded number. The agent learns the allowed options and range from `list` and cannot pass anything invalid.",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              { "name": "service", "type": "choice", "prompt": "Service", "options": ["api", "web", "worker"], "default": "api" },
+              { "name": "replicas", "type": "number", "prompt": "Replicas", "default": 3, "min": 0, "max": 20 }
+            ],
+            "command_template": "echo 'scaling {service} to {replicas} replicas'"
+          }
+        },
+        { "name": "Exit", "action": { "type": "exit" } }
+      ]
+    }
+  }
+}

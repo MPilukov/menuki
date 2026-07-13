@@ -1,0 +1,81 @@
+{
+  "$schema": "../../menuki.schema.json",
+  "title": "Agent-Operable Runbook",
+  "start_menu": "main",
+  "menus": {
+    "main": {
+      "title": "Deploy Runbook (agent-operable)",
+      "info": [
+        { "label": "What", "value": "A deploy runbook written once, then operated by a human (TUI), a script, or an AI agent (menuki exec / MCP run_action)." },
+        { "label": "Contract", "value": "Each item's description + help is the instruction the agent reads from `list` - keep them accurate and it can run the runbook unattended." },
+        { "label": "Try", "value": "menuki list --config <this>   then   menuki exec --config <this> --action main/preflight" }
+      ],
+      "items": [
+        {
+          "name": "Preflight",
+          "description": "Run all pre-deploy checks in order; stops at the first failure.",
+          "help": "A sequence action: one exec runs every step. stop_on_error means the agent sees a non-zero exit and the failing step's output the moment a check fails.",
+          "action": {
+            "type": "sequence",
+            "stop_on_error": true,
+            "steps": [
+              { "type": "shell", "command": "echo 'check: working tree clean ... ok'" },
+              { "type": "shell", "command": "echo 'check: tests green ... ok'" },
+              { "type": "shell", "command": "echo 'check: migrations pending ... none'" }
+            ]
+          }
+        },
+        {
+          "name": "Build",
+          "description": "Build an image with an explicit tag. The tag format is validated.",
+          "help": "Pass --param tag=v1.2.3. Only semver-like tags are accepted, so the agent cannot build an unlabeled image.",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              { "name": "tag", "type": "string", "prompt": "Image tag", "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+$", "example": "v1.2.3", "required": true }
+            ],
+            "command_template": "echo 'building image myapp:{tag}' && echo '{\"image\":\"myapp:{tag}\",\"built\":true}'"
+          }
+        },
+        {
+          "name": "Deploy",
+          "description": "Deploy a built tag to an environment; returns a JSON result.",
+          "help": "Two typed inputs give the agent the full contract: environment is a fixed choice, tag is validated. Result is JSON so the agent can confirm success.",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              { "name": "environment", "type": "choice", "prompt": "Environment", "options": ["staging", "production"], "default": "staging" },
+              { "name": "tag", "type": "string", "prompt": "Tag", "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+$", "example": "v1.2.3", "required": true }
+            ],
+            "command_template": "echo '{\"environment\":\"{environment}\",\"tag\":\"{tag}\",\"deployed\":true}'"
+          }
+        },
+        {
+          "name": "Status",
+          "description": "Report the currently deployed version per environment as JSON.",
+          "help": "A read-only shell action with format:json. Safe for an agent to poll before and after a deploy.",
+          "action": {
+            "type": "shell",
+            "command": "echo '{\"staging\":\"v1.2.3\",\"production\":\"v1.2.2\"}'",
+            "format": "json"
+          }
+        },
+        {
+          "name": "Rollback",
+          "description": "Roll an environment back to a previous tag. Requires explicit confirmation.",
+          "help": "The confirm input is a boolean the agent must set to proceed (--param confirm=true), guarding a destructive step behind an explicit flag.",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              { "name": "environment", "type": "choice", "prompt": "Environment", "options": ["staging", "production"], "default": "staging" },
+              { "name": "tag", "type": "string", "prompt": "Roll back to tag", "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+$", "example": "v1.2.2", "required": true },
+              { "name": "confirm", "type": "boolean", "prompt": "Confirm rollback", "default": false }
+            ],
+            "command_template": "echo 'rollback {environment} -> {tag} (confirmed={confirm})'"
+          }
+        },
+        { "name": "Exit", "action": { "type": "exit" } }
+      ]
+    }
+  }
+}

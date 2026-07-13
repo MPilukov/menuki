@@ -7,7 +7,7 @@
       "title": "Typed Inputs",
       "info": [
         { "label": "What", "value": "Each input declares a type - validated before the command runs, in the TUI and headless." },
-        { "label": "Try", "value": "menuki exec --config <this> --action main/deploy --param environment=prod" }
+        { "label": "Try", "value": "menuki exec --config <this> --action main/deploy-to-environment --param environment=production" }
       ],
       "items": [
         {
