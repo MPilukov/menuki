@@ -17,18 +17,20 @@ public static class ExamplesCli
 {
     public static int Run(string[] args)
     {
-        var name = args.Length > 1 && !args[1].StartsWith("--", StringComparison.Ordinal) ? args[1] : null;
+        var input = args.Length > 1 && !args[1].StartsWith("--", StringComparison.Ordinal) ? args[1] : null;
 
-        if (name == null)
+        if (input == null)
         {
             PrintList();
             return 0;
         }
 
-        var json = ExampleCatalog.ReadJson(name);
+        // Accept "docker" or "devops/docker"; resolve to the canonical leaf name.
+        var name = ExampleCatalog.Resolve(input);
+        var json = name == null ? null : ExampleCatalog.ReadJson(name);
         if (json == null)
         {
-            Console.Error.WriteLine($"No example named '{name}'.");
+            Console.Error.WriteLine($"No example named '{input}'.");
             PrintList();
             return 2;
         }

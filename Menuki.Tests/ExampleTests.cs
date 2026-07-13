@@ -31,6 +31,17 @@ public class ExampleTests
     }
 
     [Fact]
+    public void Resolve_accepts_leaf_name_and_category_path()
+    {
+        Assert.Equal("docker", ExampleCatalog.Resolve("docker"));
+        Assert.Equal("docker", ExampleCatalog.Resolve("devops/docker"));
+        Assert.Equal("agent-mode", ExampleCatalog.Resolve("agents/agent-mode"));
+        Assert.Equal("git", ExampleCatalog.Resolve("DEV/GIT")); // case-insensitive
+        Assert.Null(ExampleCatalog.Resolve("agents/nope"));
+        Assert.Null(ExampleCatalog.Resolve("wrongcat/docker")); // wrong category rejected
+    }
+
+    [Fact]
     public void ReadJson_unknown_returns_null()
     {
         Assert.Null(ExampleCatalog.ReadJson("does-not-exist"));

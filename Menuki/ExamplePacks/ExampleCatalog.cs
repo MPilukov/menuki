@@ -76,8 +76,29 @@ public static class ExampleCatalog
         return result.OrderBy(e => e.Name, StringComparer.Ordinal).ToList();
     }
 
-    public static bool Exists(string name) =>
-        !Excluded.Contains(name) && ResourceNames().Any(r => NameOf(r).Equals(name, StringComparison.OrdinalIgnoreCase));
+    public static bool Exists(string name) => Resolve(name) != null;
+
+    /// <summary>
+    /// Resolve a user-typed reference to the canonical pack name, or null if there is no match.
+    /// Accepts both the bare leaf name ("docker") and the category-qualified path
+    /// ("devops/docker") that appears in the grouped listing, case-insensitively.
+    /// </summary>
+    public static string? Resolve(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            return null;
+        var q = query.Replace('\\', '/').Trim();
+        foreach (var res in ResourceNames())
+        {
+            var name = NameOf(res);
+            if (Excluded.Contains(name))
+                continue;
+            if (name.Equals(q, StringComparison.OrdinalIgnoreCase) ||
+                RelPath(res).Equals(q, StringComparison.OrdinalIgnoreCase))
+                return name;
+        }
+        return null;
+    }
 
     /// <summary>The raw JSON of an example, or null if there is no such pack.</summary>
     public static string? ReadJson(string name)
