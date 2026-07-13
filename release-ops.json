@@ -1,0 +1,67 @@
+{
+  "$schema": "./menuki.schema.json",
+  "title": "menuki release ops",
+  "start_menu": "main",
+  "menus": {
+    "main": {
+      "title": "Release Ops (this repo)",
+      "info": [
+        { "label": "What", "value": "Real maintenance actions for the menuki repo, runnable by a human (TUI) or by Claude (menuki exec)." },
+        { "label": "Safe by default", "value": "status / unreleased / download-stats / run-tests are read-only. cut-release is guarded by confirm=true." },
+        { "label": "Agent try", "value": "menuki exec --config release-ops.json --action main/unreleased" }
+      ],
+      "items": [
+        {
+          "name": "Status",
+          "description": "Current branch, latest released tag, and how many commits are unreleased.",
+          "help": "Read-only. A quick 'where am I' before deciding whether to cut a release.",
+          "action": {
+            "type": "shell",
+            "command": "printf 'branch:        %s\\nlatest tag:    %s\\nunreleased:    %s commit(s)\\n' \"$(git branch --show-current)\" \"$(git describe --tags --abbrev=0 2>/dev/null || echo none)\" \"$(git rev-list \"$(git describe --tags --abbrev=0)\"..HEAD --count 2>/dev/null || echo 0)\""
+          }
+        },
+        {
+          "name": "Unreleased",
+          "description": "List the commits on main that are not yet in any release tag.",
+          "help": "Exactly what a new release would ship. Read-only. This is the first thing an agent should check before tagging.",
+          "action": {
+            "type": "shell",
+            "command": "git log \"$(git describe --tags --abbrev=0)\"..HEAD --oneline"
+          }
+        },
+        {
+          "name": "Download stats",
+          "description": "Per-platform download counts across all GitHub releases (the brew-install proxy).",
+          "help": "Read-only. Needs the gh CLI authenticated. Aggregates asset download_count by file name.",
+          "action": {
+            "type": "shell",
+            "command": "gh api repos/MPilukov/menuki/releases --jq '[.[].assets[]] | group_by(.name)[] | \"\\(.[0].name): \\(map(.download_count) | add)\"'"
+          }
+        },
+        {
+          "name": "Run tests",
+          "description": "Build and run the full test suite in Release.",
+          "help": "Slower (~1 min). An agent should run this before cutting a release.",
+          "action": {
+            "type": "shell",
+            "command": "dotnet test Menuki.sln -c Release --nologo"
+          }
+        },
+        {
+          "name": "Cut release",
+          "description": "Tag a new version and push it, which triggers the release workflow. Guarded.",
+          "help": "Two typed inputs: version must be vX.Y.Z, and confirm must be true to actually tag/push. With confirm=false it only reports what it would do.",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              { "name": "version", "type": "string", "prompt": "New version tag", "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+$", "example": "v0.1.9", "required": true },
+              { "name": "confirm", "type": "boolean", "prompt": "Really tag and push?", "default": false }
+            ],
+            "command_template": "if [ \"{confirm}\" = \"true\" ]; then git tag {version} && git push origin {version} && echo \"released {version}\"; else echo \"dry run: would tag and push {version} (set confirm=true to do it)\"; fi"
+          }
+        },
+        { "name": "Exit", "action": { "type": "exit" } }
+      ]
+    }
+  }
+}
