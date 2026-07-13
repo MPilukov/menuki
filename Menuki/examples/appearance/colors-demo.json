@@ -1,5 +1,5 @@
 {
-  "$schema": "../../menuki.schema.json",
+  "$schema": "../../../menuki.schema.json",
   "title": "Custom Colors Demo",
   "start_menu": "main",
   "colors": {

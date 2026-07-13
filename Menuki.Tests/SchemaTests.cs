@@ -26,7 +26,8 @@ public class SchemaTests
     public static IEnumerable<object[]> ExampleConfigs()
     {
         var dir = Path.Combine(RepoRoot.Value, "Menuki", "examples");
-        foreach (var file in Directory.GetFiles(dir, "*.json"))
+        // Packs live in category subfolders (dev/, devops/, agents/, ...); recurse to find them all.
+        foreach (var file in Directory.GetFiles(dir, "*.json", SearchOption.AllDirectories))
         {
             // plugin-demo uses custom plugin action types, which a schema of the
             // built-ins cannot enumerate - exclude it from strict conformance.

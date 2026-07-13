@@ -20,6 +20,17 @@ public class ExampleTests
     }
 
     [Fact]
+    public void Examples_are_grouped_into_known_categories()
+    {
+        var byName = ExampleCatalog.List().ToDictionary(e => e.Name, e => e.Category);
+        Assert.Equal("dev", byName["git"]);
+        Assert.Equal("devops", byName["docker"]);
+        Assert.Equal("agents", byName["agent-mode"]);
+        Assert.Equal("appearance", byName["colors-demo"]);
+        Assert.Equal("demos", byName["typed-inputs-demo"]);
+    }
+
+    [Fact]
     public void ReadJson_unknown_returns_null()
     {
         Assert.Null(ExampleCatalog.ReadJson("does-not-exist"));

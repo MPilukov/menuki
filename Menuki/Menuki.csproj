@@ -18,8 +18,8 @@
     <!-- Bundle the curated example packs into the binary so `menuki examples`
          works offline, on any install method, without cloning the repo. -->
     <ItemGroup>
-      <EmbeddedResource Include="examples/*.json">
-        <LogicalName>examples/%(Filename)%(Extension)</LogicalName>
+      <EmbeddedResource Include="examples/**/*.json">
+        <LogicalName>examples/%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
       </EmbeddedResource>
     </ItemGroup>
 

@@ -63,7 +63,7 @@ No install needed if you have .NET 8:
 dotnet build
 dotnet run --project Menuki -- tour          # guided tour of every feature
 dotnet run --project Menuki                  # welcome screen
-dotnet run --project Menuki -- --config Menuki/examples/dev-runbook.json
+dotnet run --project Menuki -- --config Menuki/examples/dev/dev-runbook.json
 ```
 
 ## Install
@@ -157,7 +157,7 @@ They cover typed-input validation, sequence/parallel/retry/stop-on-error, headle
 }
 ```
 
-For a config living in this repo you can point at the file directly (works offline), e.g. `"$schema": "../../menuki.schema.json"` - see the example configs. Or map it globally in VS Code `settings.json`:
+For a config living in this repo you can point at the file directly (works offline), e.g. `"$schema": "../../../menuki.schema.json"` - see the example configs under `Menuki/examples/<category>/`. Or map it globally in VS Code `settings.json`:
 
 ```json
 { "json.schemas": [ { "fileMatch": ["*.menu.json"], "url": "./menuki.schema.json" } ] }
@@ -347,7 +347,7 @@ At any text prompt, **Up / Down** recalls previously entered values (a shared hi
 | `boolean` | - | Accepts yes/no/true/false/1/0; normalized to `true` / `false` |
 | `date` | `format?` | Parsed with `format` (default `yyyy-MM-dd`) and normalized |
 
-Common fields: `required` (no empty fallback), `default`, and `secret`. An invalid value is rejected with a clear message - headless returns `{ "ok": false, "error": "Invalid value 'prod' for parameter 'environment'. Allowed values: staging, production." }`. Bad specs (a `choice` with no `options`, `min > max`, a default that fails its own type) are caught by `validate_menu`. See `examples/typed-inputs-demo.json`.
+Common fields: `required` (no empty fallback), `default`, and `secret`. An invalid value is rejected with a clear message - headless returns `{ "ok": false, "error": "Invalid value 'prod' for parameter 'environment'. Allowed values: staging, production." }`. Bad specs (a `choice` with no `options`, `min > max`, a default that fails its own type) are caught by `validate_menu`. See `examples/demos/typed-inputs-demo.json`.
 
 Set `"secret": true` on an input to mark it sensitive: it is masked (`****`) while typing, never written to the input history (`~/.menuki/input_history`, which is created `0600`), and shown as `***` in any echoed or headless-returned command.
 
@@ -723,7 +723,7 @@ Two subcommands, both emitting JSON on stdout:
 **`list`** - flatten every menu item into an addressable action:
 
 ```bash
-dotnet run --project Menuki -- list --config Menuki/examples/devops-tools.json
+dotnet run --project Menuki -- list --config Menuki/examples/devops/devops-tools.json
 ```
 
 ```json

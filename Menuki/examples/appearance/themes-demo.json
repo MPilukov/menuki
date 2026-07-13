@@ -1,5 +1,5 @@
 {
-  "$schema": "../../menuki.schema.json",
+  "$schema": "../../../menuki.schema.json",
   "title": "Themes & Settings Demo",
   "start_menu": "main",
   "theme": "ocean",

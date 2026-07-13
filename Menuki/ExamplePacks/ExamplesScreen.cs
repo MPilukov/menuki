@@ -15,13 +15,17 @@ public static class ExamplesScreen
     {
         var registry = ActionExecutorFactory.BuildDefault();
         var examples = ExampleCatalog.List();
-        var width = examples.Count == 0 ? 0 : examples.Max(e => e.Name.Length);
+        // Show packs grouped by category (dev, devops, agents, ...) so the list reads in sections.
+        var ordered = ExamplesCli.GroupByCategory(examples).SelectMany(g => g).ToList();
+        var nameWidth = examples.Count == 0 ? 0 : examples.Max(e => e.Name.Length);
+        var catWidth = examples.Count == 0 ? 0 : examples.Max(e => ExamplesCli.CategoryLabel(e.Category).Length);
         var selected = 0;
 
         while (true)
         {
-            var items = examples
-                .Select(e => new MenuItem($"{e.Name.PadRight(width)}   {e.Title}",
+            var items = ordered
+                .Select(e => new MenuItem(
+                    $"{ExamplesCli.CategoryLabel(e.Category).PadRight(catWidth)}  {e.Name.PadRight(nameWidth)}   {e.Title}",
                     new TagActionExecutor(e.Name), e.Title))
                 .ToList();
             items.Add(new MenuItem("Back", new TagActionExecutor(Back), null));

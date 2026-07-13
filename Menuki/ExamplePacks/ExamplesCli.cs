@@ -52,11 +52,38 @@ public static class ExamplesCli
         Console.WriteLine("Example packs (run with: menuki examples <name>):\n");
 
         var width = examples.Count == 0 ? 0 : examples.Max(e => e.Name.Length);
-        foreach (var e in examples)
-            Console.WriteLine($"  {e.Name.PadRight(width)}   {e.Title}");
+        foreach (var group in GroupByCategory(examples))
+        {
+            Console.WriteLine($"{CategoryLabel(group.Key)}:");
+            foreach (var e in group)
+                Console.WriteLine($"  {e.Name.PadRight(width)}   {e.Title}");
+            Console.WriteLine();
+        }
 
-        Console.WriteLine("\nAdd --save [path] to write the JSON, or --print to view it.");
+        Console.WriteLine("Add --save [path] to write the JSON, or --print to view it.");
     }
+
+    /// <summary>
+    /// Group packs by category in display order (see <see cref="ExampleCatalog.CategoryOrder"/>),
+    /// with any unlisted categories following alphabetically and root packs last.
+    /// </summary>
+    internal static IEnumerable<IGrouping<string, ExampleInfo>> GroupByCategory(IEnumerable<ExampleInfo> examples) =>
+        examples
+            .GroupBy(e => e.Category)
+            .OrderBy(g => CategoryRank(g.Key))
+            .ThenBy(g => g.Key, StringComparer.Ordinal);
+
+    private static int CategoryRank(string category)
+    {
+        if (string.IsNullOrEmpty(category)) return int.MaxValue;           // root packs last
+        var i = ExampleCatalog.CategoryOrder
+            .ToList()
+            .FindIndex(c => c.Equals(category, StringComparison.OrdinalIgnoreCase));
+        return i >= 0 ? i : ExampleCatalog.CategoryOrder.Count;            // known first, then the rest
+    }
+
+    internal static string CategoryLabel(string category) =>
+        string.IsNullOrEmpty(category) ? "other" : category;
 
     private static int Save(string name, string json, string? path)
     {

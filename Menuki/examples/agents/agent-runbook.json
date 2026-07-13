@@ -1,5 +1,5 @@
 {
-  "$schema": "../../menuki.schema.json",
+  "$schema": "../../../menuki.schema.json",
   "title": "Agent-Operable Runbook",
   "start_menu": "main",
   "menus": {
