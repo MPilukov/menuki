@@ -124,7 +124,7 @@ public class MenuEngine
             Console.SetCursorPosition(0, 0);
         }
 
-        Console.ForegroundColor = _theme.Text;
+        _theme.UseText();
         Console.Clear();
         // With the marker on, the cursor is hidden so ▶ is the only cue; with it off, the
         // cursor stays visible and marks the selected row itself.
@@ -132,14 +132,14 @@ public class MenuEngine
 
         if (_addInfo != null && _addInfo.Count > 0)
         {
-            Console.ForegroundColor = _theme.InfoBorder;
+            _theme.UseInfoBorder();
             Console.WriteLine("-------- Info --------");
 
             var maxLength = _addInfo.Select(x => x.Key).Max(x => x.Length);
 
             foreach (var data in _addInfo)
             {
-                Console.ForegroundColor = _theme.InfoLabel;
+                _theme.UseInfoLabel();
                 Console.Write(Prefix);
                 Console.Write(data.Key);
 
@@ -151,36 +151,36 @@ public class MenuEngine
 
                 Console.Write(" : ");
 
-                Console.ForegroundColor = _theme.InfoValue;
+                _theme.UseInfoValue();
                 Console.WriteLine(data.Value);
             }
 
-            Console.ForegroundColor = _theme.InfoBorder;
+            _theme.UseInfoBorder();
             Console.WriteLine("----------------------");
         }
 
         if (_searchQuery.Length > 0)
         {
-            Console.ForegroundColor = _theme.Message;
+            _theme.UseMessage();
             Console.Write(Prefix);
             Console.WriteLine($"Search: {_searchQuery}");
-            Console.ForegroundColor = _theme.Text;
+            _theme.UseText();
         }
         else if (!string.IsNullOrWhiteSpace(pushTextToUser))
         {
-            Console.ForegroundColor = _theme.Message;
+            _theme.UseMessage();
             Console.Write(Prefix);
             Console.WriteLine(pushTextToUser);
-            Console.ForegroundColor = _theme.Text;
+            _theme.UseText();
         }
         else
         {
             Console.WriteLine();
         }
 
-        Console.ForegroundColor = _theme.Title;
+        _theme.UseTitle();
         Console.WriteLine($"-------- {_menuTitle} --------");
-        Console.ForegroundColor = _theme.Text;
+        _theme.UseText();
 
         if (OperatingSystem.IsWindows())
         {
@@ -199,9 +199,9 @@ public class MenuEngine
 
         if (_currentItems.Count == 0 && _searchQuery.Length > 0)
         {
-            Console.ForegroundColor = _theme.Message;
+            _theme.UseMessage();
             Console.WriteLine($"{Prefix}No matches");
-            Console.ForegroundColor = _theme.Text;
+            _theme.UseText();
         }
         else
         {
@@ -211,9 +211,9 @@ public class MenuEngine
 
                 if (idx == selectedItemIndex)
                 {
-                    Console.ForegroundColor = _theme.Selected;
+                    _theme.UseSelected();
                     Console.WriteLine($"{SelectedPrefix}{item.Name}");
-                    Console.ForegroundColor = _theme.Text;
+                    _theme.UseText();
                 }
                 else
                 {
@@ -228,7 +228,7 @@ public class MenuEngine
     private void WriteHints()
     {
         Console.WriteLine();
-        Console.ForegroundColor = _theme.InfoBorder;
+        _theme.UseInfoBorder();
 
         var hints = new List<string> { "Up/Down: Navigate", "Enter: Select" };
 
@@ -248,7 +248,7 @@ public class MenuEngine
             hints.Add("Left/Right: Page");
 
         Console.WriteLine($"{Prefix}{string.Join("  |  ", hints)}");
-        Console.ForegroundColor = _theme.Text;
+        _theme.UseText();
     }
 
     /// <summary>
@@ -310,7 +310,7 @@ public class MenuEngine
             keyinfo = Console.ReadKey(intercept: true);
 
             var preSelectedStr = _currentItems[index].Name;
-            Console.ForegroundColor = _theme.Text;
+            _theme.UseText();
 
             Console.SetCursorPosition(0, _itemsStartLine + index);
             Console.Write($"{Prefix}{preSelectedStr}");
@@ -320,7 +320,7 @@ public class MenuEngine
                 index = (index + 1 < _currentItems.Count) ? index + 1 : 0;
 
                 var str = _currentItems[index].Name;
-                Console.ForegroundColor = _theme.Selected;
+                _theme.UseSelected();
                 Console.SetCursorPosition(0, _itemsStartLine + index);
                 Console.Write($"{SelectedPrefix}{str}");
             }
@@ -330,7 +330,7 @@ public class MenuEngine
                 index = (index - 1 >= 0) ? index - 1 : _currentItems.Count - 1;
 
                 var str = _currentItems[index].Name;
-                Console.ForegroundColor = _theme.Selected;
+                _theme.UseSelected();
                 Console.SetCursorPosition(0, _itemsStartLine + index);
                 Console.Write($"{SelectedPrefix}{str}");
             }

@@ -11,8 +11,19 @@ public static class ThemeCatalog
 {
     public const string Custom = "custom";
 
+    /// <summary>Text color sentinel meaning "use the terminal's own default foreground".</summary>
+    public const string DefaultColor = "default";
+
     private static readonly Dictionary<string, ColorScheme> Schemes = new(StringComparer.OrdinalIgnoreCase)
     {
+        // Background-agnostic default: body text uses the terminal's own foreground (readable
+        // on light AND dark), and accents use the "dark" ANSI variants, which keep contrast
+        // on both. This is what a fresh user sees, so it must never be invisible anywhere.
+        ["auto"] = new()
+        {
+            Text = DefaultColor, Selected = "DarkYellow", Title = "Red",
+            InfoBorder = "DarkGray", InfoLabel = "DarkCyan", InfoValue = DefaultColor, Message = "Magenta"
+        },
         ["dark"] = new()
         {
             Text = "White", Selected = "DarkYellow", Title = "Red",
@@ -50,16 +61,16 @@ public static class ThemeCatalog
         },
     };
 
-    /// <summary>Built-in theme names, in cycle order.</summary>
+    /// <summary>Built-in theme names, in cycle order. "auto" is first so it is the default.</summary>
     public static readonly IReadOnlyList<string> Names = new[]
     {
-        "dark", "light", "ocean", "forest", "matrix", "high-contrast", "synthwave"
+        "auto", "dark", "light", "ocean", "forest", "matrix", "high-contrast", "synthwave"
     };
 
     public static bool IsKnown(string name) => Schemes.ContainsKey(name);
 
     public static ColorScheme Get(string name) =>
-        Schemes.TryGetValue(name, out var scheme) ? scheme : Schemes["dark"];
+        Schemes.TryGetValue(name, out var scheme) ? scheme : Schemes["auto"];
 
     /// <summary>Name of the theme after <paramref name="current"/> in <paramref name="available"/>, wrapping around.</summary>
     public static string Next(string current, IReadOnlyList<string> available)

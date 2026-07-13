@@ -22,8 +22,8 @@
     },
     "theme": {
       "type": "string",
-      "enum": ["dark", "light", "ocean", "forest", "matrix", "high-contrast", "synthwave", "custom"],
-      "description": "Default color theme. Press T at runtime to cycle themes; 'custom' uses the 'colors' object."
+      "enum": ["auto", "dark", "light", "ocean", "forest", "matrix", "high-contrast", "synthwave", "custom"],
+      "description": "Default color theme. 'auto' (the default) adapts to any terminal background. Press T at runtime to cycle themes; 'custom' uses the 'colors' object."
     },
     "colors": {
       "$ref": "#/definitions/colors"

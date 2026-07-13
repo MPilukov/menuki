@@ -7,17 +7,17 @@ public static class PromptHelper
     public static string PromptString(string label, string currentValue, ThemeManager theme)
     {
         Console.Clear();
-        Console.ForegroundColor = theme.Title;
+        theme.UseTitle();
         Console.WriteLine($"  Edit: {label}");
         Console.WriteLine();
 
-        Console.ForegroundColor = theme.InfoLabel;
+        theme.UseInfoLabel();
         Console.Write("  Current value: ");
-        Console.ForegroundColor = theme.InfoValue;
+        theme.UseInfoValue();
         Console.WriteLine(currentValue);
         Console.WriteLine();
 
-        Console.ForegroundColor = theme.Text;
+        theme.UseText();
         Console.Write("  New value (Enter to keep current): ");
         var input = Console.ReadLine();
 
@@ -27,17 +27,17 @@ public static class PromptHelper
     public static string? PromptOptionalString(string label, string? currentValue, ThemeManager theme)
     {
         Console.Clear();
-        Console.ForegroundColor = theme.Title;
+        theme.UseTitle();
         Console.WriteLine($"  Edit: {label}");
         Console.WriteLine();
 
-        Console.ForegroundColor = theme.InfoLabel;
+        theme.UseInfoLabel();
         Console.Write("  Current value: ");
-        Console.ForegroundColor = theme.InfoValue;
+        theme.UseInfoValue();
         Console.WriteLine(currentValue ?? "(empty)");
         Console.WriteLine();
 
-        Console.ForegroundColor = theme.Text;
+        theme.UseText();
         Console.Write("  New value (Enter to keep, '-' to clear): ");
         var input = Console.ReadLine();
 
@@ -52,7 +52,7 @@ public static class PromptHelper
         void Render()
         {
             Console.Clear();
-            Console.ForegroundColor = theme.Title;
+            theme.UseTitle();
             Console.WriteLine($"  {label}");
             Console.WriteLine();
 
@@ -63,20 +63,20 @@ public static class PromptHelper
 
                 if (i == selected)
                 {
-                    Console.ForegroundColor = theme.Selected;
+                    theme.UseSelected();
                     Console.WriteLine($"  {marker} [{i + 1}] {choices[i]}{suffix}");
                 }
                 else
                 {
-                    Console.ForegroundColor = theme.Text;
+                    theme.UseText();
                     Console.WriteLine($"  {marker} [{i + 1}] {choices[i]}{suffix}");
                 }
             }
 
             Console.WriteLine();
-            Console.ForegroundColor = theme.InfoBorder;
+            theme.UseInfoBorder();
             Console.WriteLine("  Up/Down + Enter to select  |  Number key  |  Esc = cancel");
-            Console.ForegroundColor = theme.Text;
+            theme.UseText();
         }
 
         Render();
@@ -113,9 +113,9 @@ public static class PromptHelper
 
     public static bool PromptConfirm(string message, ThemeManager theme)
     {
-        Console.ForegroundColor = theme.Message;
+        theme.UseMessage();
         Console.Write($"  {message} (y/n): ");
-        Console.ForegroundColor = theme.Text;
+        theme.UseText();
         var input = Console.ReadLine();
         return input?.Trim().ToLower() == "y";
     }
@@ -123,11 +123,11 @@ public static class PromptHelper
     public static string? PromptFilePath(string label, ThemeManager theme)
     {
         Console.Clear();
-        Console.ForegroundColor = theme.Title;
+        theme.UseTitle();
         Console.WriteLine($"  {label}");
         Console.WriteLine();
 
-        Console.ForegroundColor = theme.Text;
+        theme.UseText();
         Console.Write("  File path: ");
         var path = Console.ReadLine()?.Trim();
 
@@ -136,9 +136,9 @@ public static class PromptHelper
 
         if (!File.Exists(path))
         {
-            Console.ForegroundColor = theme.Message;
+            theme.UseMessage();
             Console.WriteLine($"  File not found: {path}");
-            Console.ForegroundColor = theme.Text;
+            theme.UseText();
             Console.WriteLine("  Press any key...");
             Console.ReadKey(intercept: true);
             return null;
@@ -149,9 +149,9 @@ public static class PromptHelper
 
     public static void ShowMessage(string message, ThemeManager theme)
     {
-        Console.ForegroundColor = theme.Message;
+        theme.UseMessage();
         Console.WriteLine($"  {message}");
-        Console.ForegroundColor = theme.Text;
+        theme.UseText();
         Console.WriteLine("  Press any key...");
         Console.ReadKey(intercept: true);
     }

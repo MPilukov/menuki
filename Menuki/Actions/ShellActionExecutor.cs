@@ -33,7 +33,7 @@ public class ShellActionExecutor : IActionExecutor
         Console.WriteLine();
         Console.ForegroundColor = ConsoleColor.DarkGray;
         Console.WriteLine("Press any key to continue...");
-        Console.ForegroundColor = ConsoleColor.White;
+        Console.ResetColor();
         Console.ReadKey(intercept: true);
 
         return null;
