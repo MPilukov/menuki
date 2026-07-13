@@ -510,6 +510,8 @@ Roles: `text` (menu items), `selected` (highlighted row), `title`, `info_border`
 
 Values are `ConsoleColor` names or `default` (the terminal's own foreground, readable on any background): `Black`, `DarkBlue`, `DarkGreen`, `DarkCyan`, `DarkRed`, `DarkMagenta`, `DarkYellow`, `DarkGray`, `Gray`, `Blue`, `Green`, `Cyan`, `Red`, `Magenta`, `Yellow`, `White`.
 
+See it live with `menuki examples colors-demo` (overrides every role, including the prompt/input colors).
+
 The active theme and marker preference persist in `~/.menuki/settings.json` (relocatable via the `MENUKI_HOME` environment variable). Try `menuki examples themes-demo`.
 
 ## Full Example

@@ -1,0 +1,62 @@
+{
+  "$schema": "../../menuki.schema.json",
+  "title": "Custom Colors Demo",
+  "start_menu": "main",
+  "colors": {
+    "text": "default",
+    "selected": "Magenta",
+    "title": "DarkCyan",
+    "info_border": "DarkGray",
+    "info_label": "Blue",
+    "info_value": "default",
+    "message": "DarkYellow",
+
+    "prompt": "Blue",
+    "input": "DarkYellow",
+    "error": "Red",
+    "option": "default",
+    "option_selected": "Green",
+    "command": "DarkCyan"
+  },
+  "menus": {
+    "main": {
+      "title": "Custom Colors",
+      "info": [
+        { "label": "What", "value": "This config sets its own `colors` block - no theme needed, it just applies." },
+        { "label": "Roles", "value": "text uses 'default' (the terminal's own color) so it is readable on any background; accents are picked to work on light and dark." },
+        { "label": "Try", "value": "Run 'Greet someone' for prompt/input/error colors, 'Pick an environment' for choice colors." }
+      ],
+      "items": [
+        {
+          "name": "Greet someone",
+          "description": "A typed field: see the prompt, input and error colors (type digits to trigger the error).",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              { "name": "name", "prompt": "Your name", "pattern": "^[A-Za-z ]+$", "example": "Ada", "required": true }
+            ],
+            "command_template": "echo \"Hello, {name}!\""
+          }
+        },
+        {
+          "name": "Pick an environment",
+          "description": "A choice: see the option and option_selected colors.",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              { "name": "env", "type": "choice", "prompt": "Environment", "options": ["dev", "staging", "prod"], "default": "dev" }
+            ],
+            "command_template": "echo \"deploying to {env}\""
+          }
+        },
+        {
+          "name": "Run a command",
+          "description": "A plain shell action: see the command-echo color.",
+          "action": { "type": "shell", "command": "echo 'hello from a shell action'" }
+        },
+        { "name": "Open Settings", "action": { "type": "settings" } },
+        { "name": "Exit", "action": { "type": "exit" } }
+      ]
+    }
+  }
+}
