@@ -62,6 +62,35 @@ public class ThemeTests
     }
 
     [Fact]
+    public void Colors_apply_without_setting_theme_custom()
+    {
+        // A config that provides `colors` but no `theme` defaults to the custom theme,
+        // so the overrides just apply.
+        var mgr = new ThemeManager(null, new ColorScheme { Text = "Green", Prompt = "Blue" });
+        Assert.Equal(ThemeCatalog.Custom, mgr.ActiveThemeName);
+        Assert.Equal("Green", mgr.Current.Text);
+    }
+
+    [Fact]
+    public void Custom_colors_override_input_flow_roles()
+    {
+        var mgr = new ThemeManager("custom",
+            new ColorScheme { Prompt = "Blue", Input = "Yellow", Error = "DarkRed", Command = "Magenta" });
+        Assert.Equal("Blue", mgr.Current.Prompt);
+        Assert.Equal("Yellow", mgr.Current.Input);
+        Assert.Equal("DarkRed", mgr.Current.Error);
+        Assert.Equal("Magenta", mgr.Current.Command);
+    }
+
+    [Fact]
+    public void Unset_input_roles_stay_empty_for_builtin_fallback()
+    {
+        // Built-in themes leave input roles empty so the Use*() fallback supplies the color.
+        Assert.Equal("", ThemeCatalog.Get("auto").Prompt);
+        Assert.Equal("", ThemeCatalog.Get("dark").Input);
+    }
+
+    [Fact]
     public void Custom_theme_merges_config_colors_over_defaults()
     {
         var mgr = new ThemeManager("dark", new ColorScheme { Selected = "Green" });

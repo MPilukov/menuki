@@ -483,24 +483,32 @@ It lets you cycle the theme and toggle the **selection marker** (the `▶` on th
 }
 ```
 
-**Custom palette.** Add a `colors` block to define your own theme (`"theme": "custom"`; also joins the T-cycle):
+**Custom palette.** Add a `colors` block to override any role. It applies on its own - no need to set `"theme": "custom"` (that name is added to the T-cycle automatically). Override just the roles you care about; the rest keep their built-in colors:
 
 ```json
 {
-  "theme": "custom",
   "colors": {
-    "text": "White",
+    "text": "default",
     "selected": "DarkYellow",
     "title": "Red",
-    "info_border": "Blue",
+    "info_border": "DarkGray",
     "info_label": "DarkCyan",
-    "info_value": "Cyan",
-    "message": "Magenta"
+    "info_value": "default",
+    "message": "Magenta",
+
+    "prompt": "Cyan",
+    "input": "Yellow",
+    "error": "Red",
+    "option": "default",
+    "option_selected": "Green",
+    "command": "Cyan"
   }
 }
 ```
 
-Any omitted field falls back to the dark theme defaults. Available color names: `Black`, `DarkBlue`, `DarkGreen`, `DarkCyan`, `DarkRed`, `DarkMagenta`, `DarkYellow`, `DarkGray`, `Gray`, `Blue`, `Green`, `Cyan`, `Red`, `Magenta`, `Yellow`, `White`.
+Roles: `text` (menu items), `selected` (highlighted row), `title`, `info_border` / `info_label` / `info_value` (info panel), `message`; and for prompts: `prompt` (the label), `input` (what you type), `error` (validation errors), `option` / `option_selected` (choice lists), `command` (the echoed `> ...`).
+
+Values are `ConsoleColor` names or `default` (the terminal's own foreground, readable on any background): `Black`, `DarkBlue`, `DarkGreen`, `DarkCyan`, `DarkRed`, `DarkMagenta`, `DarkYellow`, `DarkGray`, `Gray`, `Blue`, `Green`, `Cyan`, `Red`, `Magenta`, `Yellow`, `White`.
 
 The active theme and marker preference persist in `~/.menuki/settings.json` (relocatable via the `MENUKI_HOME` environment variable). Try `menuki examples themes-demo`.
 
