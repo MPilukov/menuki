@@ -108,7 +108,7 @@ jobs:
             def install
               bin.install "menuki"
               generate_completions_from_executable(bin/"menuki", "completions",
-                shells: [:bash, :zsh, :fish], shell_parameter_format: :arg)
+                shells: [:bash, :zsh, :fish])
               (buildpath/"menuki.1").write Utils.safe_popen_read(bin/"menuki", "man")
               man1.install "menuki.1"
             end
