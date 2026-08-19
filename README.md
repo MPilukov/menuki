@@ -2,6 +2,12 @@
 
 Build interactive terminal menus and runbooks from a single JSON file - the same catalog usable by humans (a keyboard-driven TUI), shell scripts (headless JSON in/out), and AI agents (MCP). No app to compile: you write a JSON file listing shell commands, and Menuki turns it into a menu. Ships as a single self-contained binary.
 
+<p align="center">
+  <img src="docs/menuki-demo.gif" alt="Menuki running a menu: structured JSON output, typed-input validation, choice selection, and table formatting" width="820">
+</p>
+
+<p align="center"><sub>Running a bundled example: an action returning JSON, a validated typed input, an arrow-select choice, and table formatting - all from one JSON config.</sub></p>
+
 ## Features
 
 - **Zero dependencies** - only `System.Text.Json` (built into .NET 8)
