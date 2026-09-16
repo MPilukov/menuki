@@ -19,7 +19,7 @@ public static class ManPage
         menuki \- interactive terminal menus and runbooks from a single JSON file
         .SH SYNOPSIS
         .B menuki
-        [\fICOMMAND\fR] [\fB--config\fR \fIpath\fR] [\fIOPTIONS\fR]
+        [\fICOMMAND\fR | \fIname\fR] [\fB--config\fR \fIpath\fR|\fIname\fR] [\fIOPTIONS\fR]
         .SH DESCRIPTION
         .B menuki
         turns a single JSON file into an interactive terminal menu, usable by humans, scripts
@@ -29,8 +29,12 @@ public static class ManPage
         .PP
         Run with no arguments to open the welcome screen. Pass
         .B --config
-        to open a specific menu file.
+        to open a specific menu file, or give the name of a saved config
+        (\fBmenuki work\fR opens \fI~/.menuki/configs/work.json\fR).
         .SH COMMANDS
+        .TP
+        .I name
+        Run the saved config \fIname\fR.json from the configs directory (see FILES).
         .TP
         .B tour
         Guided, hands-on feature tour.
@@ -62,7 +66,8 @@ public static class ManPage
         .SH OPTIONS
         .TP
         .B --config \fIpath\fR
-        Run the menu defined by the JSON config at \fIpath\fR.
+        Run the menu defined by the JSON config at \fIpath\fR, or the saved config \fIname\fR.
+        An existing file wins over a saved name. Works for list, exec and validate too.
         .TP
         .B -v\fR, \fB--version
         Print the version and exit.
@@ -77,12 +82,18 @@ public static class ManPage
         .I ~/.menuki/settings.json
         Saved appearance preferences (theme, selection marker). Created on first run.
         .TP
+        .I ~/.menuki/configs/
+        Saved configs, opened by name. Also where the MCP server saves.
+        .TP
         .I ~/.menuki/examples/
         Where \fBexamples --save\fR writes materialized example packs.
         .SH ENVIRONMENT
         .TP
         .B MENUKI_HOME
-        Override the \fI~/.menuki\fR directory used for settings and materialized examples.
+        Override the \fI~/.menuki\fR directory used for settings, saved configs and materialized examples.
+        .TP
+        .B MENUKI_CONFIG_DIR
+        Override the saved-configs directory (default \fI$MENUKI_HOME/configs\fR).
         .SH EXAMPLES
         .TP
         Run the guided tour:
@@ -90,6 +101,9 @@ public static class ManPage
         .TP
         Open a menu config:
         .B menuki --config ./ops.json
+        .TP
+        Open the saved config ~/.menuki/configs/work.json:
+        .B menuki work
         .TP
         List actions for an agent to run:
         .B menuki list --config ./ops.json

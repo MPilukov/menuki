@@ -1,4 +1,5 @@
 using Menuki.Actions;
+using Menuki.Config;
 using Menuki.Plugins;
 
 namespace Menuki.Mcp;
@@ -10,7 +11,7 @@ namespace Menuki.Mcp;
 /// configs directory.
 ///
 /// Usage: menuki mcp [--dir &lt;configs-dir&gt;]
-///        (default: ~/.menuki/configs; or MENUKI_CONFIG_DIR env var)
+///        (default: $MENUKI_CONFIG_DIR, else $MENUKI_HOME/configs, else ~/.menuki/configs)
 ///
 /// Only stderr is used for diagnostics; stdout carries JSON-RPC exclusively.
 /// </summary>
@@ -18,11 +19,7 @@ internal static class McpEntry
 {
     public static int Run(string[] args)
     {
-        var dir = GetOption(args, "--dir")
-                  ?? Environment.GetEnvironmentVariable("MENUKI_CONFIG_DIR")
-                  ?? Path.Combine(
-                      Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                      ".menuki", "configs");
+        var dir = GetOption(args, "--dir") ?? ConfigResolver.ConfigsDir;
 
         try
         {

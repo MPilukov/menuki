@@ -29,12 +29,13 @@ public static class HeadlessCli
     public static int Run(string[] args)
     {
         var command = args[0];
-        var configPath = GetOption(args, "--config");
+        var configArg = GetOption(args, "--config");
 
+        if (configArg == null)
+            return Error("Missing required --config <path|name>.");
+        var configPath = ConfigResolver.Resolve(configArg);
         if (configPath == null)
-            return Error("Missing required --config <path>.");
-        if (!File.Exists(configPath))
-            return Error($"Config file not found: {configPath}");
+            return Error(ConfigResolver.NotFoundMessage(configArg));
 
         MenuConfig config;
         try

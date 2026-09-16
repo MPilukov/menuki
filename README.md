@@ -114,10 +114,25 @@ menuki tour                               # guided feature tour
 menuki examples                           # list the built-in example packs
 menuki examples git                       # run a bundled example
 menuki --config mymenu.json               # run your own config
+menuki work                               # run a saved config by name (~/.menuki/configs/work.json)
 menuki list --config <cfg>                # headless catalog (JSON)
 menuki exec --config <cfg> --action <id>  # headless run
 menuki validate --config <cfg>            # check a config (JSON errors/warnings)
 ```
+
+**Profiles: open a saved config by name.** Any config in `~/.menuki/configs` opens by
+its file name, so you can keep one menu per context and switch without remembering paths:
+
+```bash
+menuki work                 # ~/.menuki/configs/work.json
+menuki per-project          # ~/.menuki/configs/per-project.json
+menuki list --config work   # names work wherever --config does
+```
+
+An existing file path always wins over a saved name. The directory is `$MENUKI_CONFIG_DIR`,
+else `$MENUKI_HOME/configs`, else `~/.menuki/configs` - the same place the MCP server saves
+to, so a menu an agent authors is immediately `menuki <name>`. Tab completion suggests the
+saved names.
 
 **Shell completions** (if you did not install via Homebrew), pick your shell:
 
@@ -791,7 +806,8 @@ Register it in an MCP client (e.g. Claude Code) - one binary, `mcp` subcommand:
 ```
 
 With no `--dir` the server stores configs under `~/.menuki/configs`; pass
-`--dir /some/path` (or set `MENUKI_CONFIG_DIR`) to change it.
+`--dir /some/path` (or set `MENUKI_CONFIG_DIR`) to change it. A saved config opens by
+name: `save_menu` with `name: "devops"` is then `menuki devops`.
 
 ### Tools
 
@@ -831,6 +847,7 @@ Menuki/
     MenuItemDefinition.cs       # Name, Action
     ActionDefinition.cs         # Type (string), Command?, Url?, Menu?, Path?, Args?, Parameters?
     ActionType.cs               # Static class with string constants (shell, submenu, exit, ...)
+    ConfigResolver.cs           # `menuki <name>`: resolve a path or saved config name
     ColorScheme.cs              # Color fields: text, selected, title, info_*, message
     InfoPanelEntry.cs           # Label, Value?, Command?
     InputDefinition.cs          # Name, Prompt, Default?

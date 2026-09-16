@@ -150,9 +150,34 @@ public class CliIntegrationTests
         Assert.Contains("menuki ", output);
     }
 
+    [Fact]
+    public void Config_option_accepts_a_saved_config_name()
+    {
+        using var dir = new TempConfigsDir(("ops", ValidConfig));
+        var (exit, output) = RunCliWithEnv(dir.Env, "exec", "--config", "ops", "--action", "main/hello");
+
+        Assert.Equal(0, exit);
+        using var doc = JsonDocument.Parse(output);
+        Assert.Equal("hi", doc.RootElement.GetProperty("stdout").GetString());
+    }
+
+    [Fact]
+    public void Unknown_config_name_errors_and_lists_saved_configs()
+    {
+        using var dir = new TempConfigsDir(("ops", ValidConfig), ("work", ValidConfig));
+        var (exit, output) = RunCliWithEnv(dir.Env, "nope");
+
+        Assert.Equal(1, exit);
+        Assert.Contains("No config file or saved config named 'nope'", output);
+        Assert.Contains("Saved configs: ops, work", output);
+    }
+
     // --- harness --------------------------------------------------------
 
-    private static (int Exit, string Output) RunCli(params string[] args)
+    private static (int Exit, string Output) RunCli(params string[] args) =>
+        RunCliWithEnv(new Dictionary<string, string>(), args);
+
+    private static (int Exit, string Output) RunCliWithEnv(Dictionary<string, string> env, params string[] args)
     {
         var psi = new ProcessStartInfo("dotnet")
         {
@@ -160,6 +185,7 @@ public class CliIntegrationTests
             RedirectStandardError = true,
             UseShellExecute = false
         };
+        foreach (var (key, value) in env) psi.Environment[key] = value;
         psi.ArgumentList.Add(BinaryPath.Value);
         foreach (var a in args) psi.ArgumentList.Add(a);
 
@@ -204,6 +230,25 @@ public class CliIntegrationTests
         public void Dispose()
         {
             try { File.Delete(Path); } catch { /* best effort */ }
+        }
+    }
+
+    private sealed class TempConfigsDir : IDisposable
+    {
+        private readonly string _path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"mm-configs-{Guid.NewGuid():N}");
+
+        public Dictionary<string, string> Env => new() { ["MENUKI_CONFIG_DIR"] = _path };
+
+        public TempConfigsDir(params (string Name, string Json)[] configs)
+        {
+            Directory.CreateDirectory(_path);
+            foreach (var (name, json) in configs)
+                File.WriteAllText(System.IO.Path.Combine(_path, name + ".json"), json);
+        }
+
+        public void Dispose()
+        {
+            try { Directory.Delete(_path, recursive: true); } catch { /* best effort */ }
         }
     }
 }

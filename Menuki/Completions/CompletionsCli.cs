@@ -5,7 +5,8 @@ namespace Menuki.Completions;
 /// <summary>
 /// Emits shell tab-completion scripts on <c>menuki completions &lt;shell&gt;</c>. The scripts are
 /// generated (not hand-maintained) so the completed subcommands and the list of bundled example
-/// packs always match the binary. Homebrew installs them via
+/// packs always match the binary. Saved config names (<c>menuki &lt;name&gt;</c>) change after install,
+/// so the scripts list the configs directory at completion time instead. Homebrew installs them via
 /// <c>generate_completions_from_executable</c>; users of other install methods can source the
 /// output directly (see <c>menuki completions --help</c>).
 /// </summary>
@@ -26,7 +27,7 @@ public static class CompletionsCli
 
     private static readonly (string Name, string Desc)[] Flags =
     {
-        ("--config", "Run a menu config"),
+        ("--config", "Run a menu config (path or saved name)"),
         ("--action", "Action id (headless exec)"),
         ("--param", "Parameter k=v (headless exec)"),
         ("--version", "Print the version"),
@@ -95,10 +96,14 @@ public static class CompletionsCli
                 local commands="{{CommandNames()}}"
                 local flags="{{FlagNames()}}"
                 local examples="{{ExampleNames()}}"
+                local configs="" f
+                for f in "${MENUKI_CONFIG_DIR:-${MENUKI_HOME:-$HOME/.menuki}/configs}"/*.json; do
+                    [ -e "$f" ] && f="${f##*/}" && configs="$configs ${f%.json}"
+                done
 
                 case "$prev" in
                     --config)
-                        COMPREPLY=( $(compgen -f -- "$cur") )
+                        COMPREPLY=( $(compgen -f -- "$cur") $(compgen -W "$configs" -- "$cur") )
                         return 0
                         ;;
                     examples)
@@ -116,7 +121,7 @@ public static class CompletionsCli
                     return 0
                 fi
 
-                COMPREPLY=( $(compgen -W "$commands" -- "$cur") )
+                COMPREPLY=( $(compgen -W "$commands $configs" -- "$cur") )
             }
             complete -F _menuki menuki
 
@@ -144,9 +149,13 @@ public static class CompletionsCli
                     '1: :->command' \
                     '*:: :->args'
 
+                local -a configs
+                configs=( "${MENUKI_CONFIG_DIR:-${MENUKI_HOME:-$HOME/.menuki}/configs}"/*.json(N:t:r) )
+
                 case $state in
                     command)
                         _describe 'menuki command' commands
+                        _describe 'saved config' configs
                         ;;
                     args)
                         case $words[1] in
@@ -170,19 +179,29 @@ public static class CompletionsCli
         var lines = new List<string>
         {
             "# fish completion for menuki",
+            "function __menuki_configs",
+            "    set -l dir ~/.menuki/configs",
+            "    set -q MENUKI_HOME; and set dir $MENUKI_HOME/configs",
+            "    set -q MENUKI_CONFIG_DIR; and set dir $MENUKI_CONFIG_DIR",
+            "    for f in $dir/*.json",
+            "        basename $f .json",
+            "    end",
+            "end",
         };
 
         // Top-level subcommands: only when no subcommand has been typed yet.
         foreach (var (name, desc) in Commands)
             lines.Add($"complete -c menuki -f -n '__fish_use_subcommand' -a '{name}' -d '{EscapeFish(desc)}'");
 
+        // Saved config names, in the same slot as a subcommand (`menuki <name>`).
+        lines.Add("complete -c menuki -f -n '__fish_use_subcommand' -a '(__menuki_configs)' -d 'Saved config'");
         // Example names after `menuki examples`.
         lines.Add($"complete -c menuki -f -n '__fish_seen_subcommand_from examples' -a '{ExampleNames()}'");
         // Shells after `menuki completions`.
         lines.Add("complete -c menuki -f -n '__fish_seen_subcommand_from completions' -a 'bash zsh fish'");
 
         // Global flags.
-        lines.Add("complete -c menuki -l config -r -d 'Run a menu config'");
+        lines.Add("complete -c menuki -l config -r -a '(__menuki_configs)' -d 'Run a menu config (path or saved name)'");
         lines.Add("complete -c menuki -l action -x -d 'Action id (headless exec)'");
         lines.Add("complete -c menuki -l param -x -d 'Parameter k=v (headless exec)'");
         lines.Add("complete -c menuki -l version -s v -d 'Print the version'");

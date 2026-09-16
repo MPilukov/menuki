@@ -74,23 +74,32 @@ class Program
             Environment.Exit(Examples.ExamplesCli.Run(args));
         }
 
-        var configPath = GetConfigPath(args);
+        // `menuki <name>`: a bare word that is not a subcommand opens a saved config by name.
+        var configArg = GetConfigPath(args)
+                        ?? (args.Length > 0 && ConfigResolver.IsName(args[0]) ? args[0] : null);
 
         // No config given: show the welcome screen (tour / open / create / help).
-        if (configPath == null)
+        if (configArg == null)
         {
             WelcomeScreen.Run(new ThemeManager(null, null));
             return;
         }
 
+        var configPath = ConfigResolver.Resolve(configArg);
+        if (configPath == null)
+        {
+            Console.WriteLine(ConfigResolver.NotFoundMessage(configArg));
+            if (ConfigResolver.IsName(configArg))
+            {
+                var names = ConfigResolver.ListNames();
+                Console.WriteLine(names.Count > 0 ? $"Saved configs: {string.Join(", ", names)}" : "No saved configs yet.");
+                Console.WriteLine("Run 'menuki --help' for commands.");
+            }
+            Environment.Exit(1);
+        }
+
         MenuConfig config;
         {
-            if (!File.Exists(configPath))
-            {
-                Console.WriteLine($"Config file not found: {configPath}");
-                Environment.Exit(1);
-            }
-
             var json = File.ReadAllText(configPath);
             config = JsonSerializer.Deserialize<MenuConfig>(json)!;
             if (config == null)
@@ -138,12 +147,13 @@ class Program
               menuki                            Welcome screen (interactive)
               menuki tour                       Guided, hands-on feature tour
               menuki examples [name]            List, or run a built-in example pack
-              menuki --config <path>            Run a menu config (interactive)
+              menuki <name>                     Run a saved config: <configs dir>/<name>.json
+              menuki --config <path|name>       Run a menu config (interactive)
 
             Headless (JSON in, JSON out):
-              menuki list --config <path>                       Catalog of runnable actions
-              menuki exec --config <path> --action <id> [--param k=v ...]
-              menuki validate --config <path>                   Check a config
+              menuki list --config <path|name>                  Catalog of runnable actions
+              menuki exec --config <path|name> --action <id> [--param k=v ...]
+              menuki validate --config <path|name>              Check a config
 
             Example packs:
               menuki examples                   List the bundled packs
