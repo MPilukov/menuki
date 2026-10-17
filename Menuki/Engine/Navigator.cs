@@ -66,6 +66,10 @@ public static class Navigator
 
             var result = engine.RunMenu(startIndex);
 
+            // Whatever the item did (a submenu, another config, the editor), come back to it.
+            if (result != null)
+                selectedByMenu[currentMenuId] = engine.SelectedIndex;
+
             if (result != null && result.StartsWith(OpenConfigPrefix, StringComparison.Ordinal))
             {
                 OpenNested(result[OpenConfigPrefix.Length..], configPath, theme, registry);
@@ -112,9 +116,6 @@ public static class Navigator
                     break;
 
                 default:
-                    // Navigating into a submenu - remember where we were so we can
-                    // restore the selection when the user comes back.
-                    selectedByMenu[currentMenuId] = engine.SelectedIndex;
                     menuStack.Push(currentMenuId);
                     currentMenuId = result;
                     break;
