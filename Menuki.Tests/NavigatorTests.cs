@@ -87,6 +87,27 @@ public class NavigatorTests
         await terminal.ExpectExit();
     }
 
+    [Theory]
+    [InlineData("e", "Failed to launch editor")]
+    [InlineData("v", "Press any key to continue")]
+    public async Task Editor_hotkey_after_arrow_move_keeps_the_selected_item(string hotkey, string prompt)
+    {
+        using var files = new ConfigFiles();
+        var path = files.Save("main", Config(Menu("Main",
+            Item("First", ActionTypes.Exit), Item("Target", ActionTypes.Exit))));
+
+        using var terminal = new Terminal(path, files.Directory);
+        await terminal.ExpectMenu("Main", "First");
+        terminal.Send(Down + hotkey);
+        await terminal.ExpectText(prompt);
+        if (prompt != "Press any key to continue")
+            await terminal.ExpectText("Press any key to continue");
+        terminal.Send("x");
+        await terminal.ExpectMenu("Main", "Target");
+        terminal.Send(Escape);
+        await terminal.ExpectExit();
+    }
+
     [Fact]
     public async Task Returning_from_settings_selects_the_settings_item()
     {
