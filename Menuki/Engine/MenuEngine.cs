@@ -263,7 +263,12 @@ public class MenuEngine
             do
             {
                 ki = Console.ReadKey(intercept: true);
-                if (_editable && EditCommand(ki.Key) is { } editCmd) { SetCursorVisible(true); return editCmd; }
+                if (_editable && EditCommand(ki.Key) is { } editCmd)
+                {
+                    SelectedIndex = 0;
+                    SetCursorVisible(true);
+                    return editCmd;
+                }
                 if (ki.Key == ConsoleKey.T)
                 {
                     _theme.Toggle();
@@ -367,6 +372,7 @@ public class MenuEngine
 
             if (_editable && EditCommand(keyinfo.Key) is { } editCmd)
             {
+                SelectedIndex = index;
                 SetCursorVisible(true); // handing off to the editor, which reads input
                 return editCmd;
             }
