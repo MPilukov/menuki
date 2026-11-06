@@ -44,11 +44,48 @@ public static class TerminalText
         (cp >= 0x1F000 && cp <= 0x1FAFF) ||
         (cp >= 0x20000 && cp <= 0x3FFFD);
 
+    /// <summary>
+    /// Columns a grapheme cluster (what the user sees as one character) takes. An emoji
+    /// presentation selector (VS16, as in "❤️") makes it wide; joined sequences ("👩‍💻") and
+    /// flags take the width of their widest part, not the sum.
+    /// </summary>
+    public static int ClusterWidth(string cluster)
+    {
+        var max = 0;
+        foreach (var rune in cluster.EnumerateRunes())
+        {
+            if (rune.Value == 0xFE0F) return 2;
+            max = Math.Max(max, RuneWidth(rune));
+        }
+        return max;
+    }
+
+    /// <summary>The grapheme clusters of <paramref name="text"/>, in order.</summary>
+    private static IEnumerable<string> Clusters(string text)
+    {
+        var e = StringInfo.GetTextElementEnumerator(text);
+        while (e.MoveNext())
+            yield return e.GetTextElement();
+    }
+
+    /// <summary>
+    /// Replaces control characters (newlines, tabs, escapes) with spaces: one of them in a line
+    /// would move the cursor and break the row count. Shell output in the info panel has them.
+    /// </summary>
+    public static string Sanitize(string text)
+    {
+        if (!text.Any(char.IsControl)) return text;
+        var result = new StringBuilder(text.Length);
+        foreach (var c in text)
+            result.Append(char.IsControl(c) ? ' ' : c);
+        return result.ToString();
+    }
+
     public static int Width(string text)
     {
         var width = 0;
-        foreach (var rune in text.EnumerateRunes())
-            width += RuneWidth(rune);
+        foreach (var cluster in Clusters(text))
+            width += ClusterWidth(cluster);
         return width;
     }
 
@@ -56,16 +93,17 @@ public static class TerminalText
     public static string Truncate(string text, int maxWidth)
     {
         if (maxWidth <= 0) return "";
+        text = Sanitize(text);
         if (Width(text) <= maxWidth) return text;
 
         var budget = maxWidth - 1; // room for the ellipsis
         var result = new StringBuilder();
         var used = 0;
-        foreach (var rune in text.EnumerateRunes())
+        foreach (var cluster in Clusters(text))
         {
-            var w = RuneWidth(rune);
+            var w = ClusterWidth(cluster);
             if (used + w > budget) break;
-            result.Append(rune.ToString());
+            result.Append(cluster);
             used += w;
         }
         return result.Append(Ellipsis).ToString();
@@ -77,6 +115,7 @@ public static class TerminalText
     /// </summary>
     public static List<string> Wrap(string text, int maxWidth, string indent = "")
     {
+        text = Sanitize(text);
         var lines = new List<string>();
         if (maxWidth <= Width(indent) + 1)
         {
@@ -87,9 +126,9 @@ public static class TerminalText
         var current = new StringBuilder();
         var currentWidth = 0;
         var lastSpace = -1; // index in `current` of the last space, to break there
-        foreach (var rune in text.EnumerateRunes())
+        foreach (var cluster in Clusters(text))
         {
-            var w = RuneWidth(rune);
+            var w = ClusterWidth(cluster);
             if (currentWidth + w > maxWidth)
             {
                 string carry;
@@ -106,10 +145,10 @@ public static class TerminalText
                 current.Clear().Append(indent).Append(carry);
                 currentWidth = Width(current.ToString());
                 lastSpace = -1;
-                if (rune.Value == ' ') continue;
+                if (cluster == " ") continue;
             }
-            if (rune.Value == ' ') lastSpace = current.Length;
-            current.Append(rune.ToString());
+            if (cluster == " ") lastSpace = current.Length;
+            current.Append(cluster);
             currentWidth += w;
         }
         if (current.ToString().Trim().Length > 0 || lines.Count == 0)

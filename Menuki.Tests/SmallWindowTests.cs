@@ -93,8 +93,26 @@ public class TerminalTextTests
     [InlineData("🚀 go", 5)]
     [InlineData("日本", 4)]
     [InlineData("é", 1)]   // e + combining acute
+    [InlineData("❤️", 2)]                     // ❤️: VS16 makes it an emoji, two columns
+    [InlineData("\U0001F469‍\U0001F4BB", 2)]       // 👩‍💻: one joined glyph
+    [InlineData("\U0001F1E9\U0001F1EA", 2)]             // 🇩🇪: a flag is one glyph
     public void Width_counts_terminal_columns(string text, int width) =>
         Assert.Equal(width, TerminalText.Width(text));
+
+    [Fact]
+    public void Control_characters_become_spaces()
+    {
+        Assert.Equal("one two  three", TerminalText.Truncate("one\ntwo\r\tthree", 40));
+        Assert.Equal(new[] { "a b" }, TerminalText.Wrap("a\nb", 40));
+    }
+
+    [Fact]
+    public void Truncate_never_splits_a_joined_emoji()
+    {
+        var cut = TerminalText.Truncate("ab\U0001F469‍\U0001F4BBcd", 4);
+        Assert.Equal("ab…", cut);
+        Assert.True(TerminalText.Width(cut) <= 4);
+    }
 
     [Fact]
     public void Truncate_cuts_to_the_width_with_an_ellipsis()

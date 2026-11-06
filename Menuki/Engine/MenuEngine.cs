@@ -227,12 +227,14 @@ public class MenuEngine
         return lines;
     }
 
+    /// <summary>The title cut to the line width; while scrolling the N/M counter stays and the name gives way.</summary>
     private string TitleText()
     {
-        var title = $"-------- {_menuTitle} --------";
-        if (Scrolled && _currentItems.Count > 0)
-            title += $"  {_selected + 1}/{_currentItems.Count}";
-        return title;
+        var counter = Scrolled && _currentItems.Count > 0 ? $"  {_selected + 1}/{_currentItems.Count}" : "";
+        var room = LineWidth == int.MaxValue ? int.MaxValue : LineWidth - TerminalText.Width(counter);
+        if (room < 8) // too narrow for both: the counter alone
+            return TerminalText.Truncate(counter.TrimStart(), LineWidth);
+        return TerminalText.Truncate($"-------- {_menuTitle} --------", room) + counter;
     }
 
     /// <summary>Writes a line's segments in their colours, cut to the line width.</summary>
@@ -259,7 +261,7 @@ public class MenuEngine
     private void WriteTitle()
     {
         _theme.UseTitle();
-        Console.Write(TerminalText.Truncate(TitleText(), LineWidth));
+        Console.Write(TitleText());
         _theme.UseText();
     }
 
@@ -305,7 +307,7 @@ public class MenuEngine
         WriteTitle();
         if (_width > 1)
         {
-            var used = TerminalText.Width(TerminalText.Truncate(TitleText(), LineWidth));
+            var used = TerminalText.Width(TitleText());
             if (used < LineWidth)
                 Console.Write(new string(' ', LineWidth - used));
         }
@@ -457,8 +459,8 @@ public class MenuEngine
                 ConsoleKey.UpArrow => index > 0 ? index - 1 : last,
                 ConsoleKey.PageDown => Math.Min(last, index + _itemRows),
                 ConsoleKey.PageUp => Math.Max(0, index - _itemRows),
-                ConsoleKey.RightArrow when Scrolled && _searchQuery.Length == 0 => Math.Min(last, index + _itemRows),
-                ConsoleKey.LeftArrow when Scrolled && _searchQuery.Length == 0 => Math.Max(0, index - _itemRows),
+                ConsoleKey.RightArrow when Scrolled => Math.Min(last, index + _itemRows),
+                ConsoleKey.LeftArrow when Scrolled => Math.Max(0, index - _itemRows),
                 ConsoleKey.Home => 0,
                 ConsoleKey.End => last,
                 _ => null
