@@ -48,8 +48,8 @@ public class MenuSearchTests : IDisposable
     public async Task Slash_then_command_letters_filter_instead_of_running_commands()
     {
         using var terminal = Start();
-        var first = await terminal.ExpectMenu("Main");
-        Assert.Contains("/: Search", terminal.Output);
+        await terminal.ExpectMenu("Main");
+        await terminal.ExpectText("/: Search");   // later in the same footer: wait for it, not a snapshot
         var settings = SettingsText;
 
         terminal.Send("/");
@@ -116,6 +116,21 @@ public class MenuSearchTests : IDisposable
     }
 
     [Fact]
+    public async Task Closing_the_search_keeps_the_selected_item()
+    {
+        using var terminal = Start();
+        await terminal.ExpectMenu("Main");
+        terminal.Send("/info");   // only "Version info" matches
+        await terminal.ExpectFrameWith("Search: info_");
+        terminal.Send(Escape);
+        var frame = await terminal.ExpectMenu("Main");
+        Assert.DoesNotContain("Search:", frame);
+        Assert.Contains("▶ Version info", frame);
+        terminal.Send(Escape);
+        await terminal.ExpectExit();
+    }
+
+    [Fact]
     public async Task Enter_in_the_search_runs_the_found_item()
     {
         using var terminal = Start();
@@ -125,8 +140,11 @@ public class MenuSearchTests : IDisposable
         terminal.Send(Enter);
         await terminal.ExpectMenu("Child");
         terminal.Send(Escape);
-        await terminal.ExpectMenu("Main");
-        terminal.Send(Escape + Escape);   // close the search, then exit
+        // Coming back from a submenu builds the menu anew: the search is closed, one Esc exits.
+        var frame = await terminal.ExpectMenu("Main");
+        Assert.DoesNotContain("Search:", frame);
+        Assert.Contains("▶ Test runner", frame);
+        terminal.Send(Escape);
         await terminal.ExpectExit();
     }
 

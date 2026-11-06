@@ -513,10 +513,16 @@ public class MenuEngine
                 }
             }
 
-            if (_searching && HandleSearchKey(keyinfo))
+            if (_searching)
             {
-                WriteMenu(selectedItemIndex: 0);
-                return RunMenu();
+                var current = _currentItems[index];
+                if (HandleSearchKey(keyinfo))
+                {
+                    // While typing the first match is selected; closing the search keeps the item the cursor was on.
+                    var keep = _searching ? 0 : Math.Max(0, _currentItems.IndexOf(current));
+                    WriteMenu(selectedItemIndex: keep);
+                    return RunMenu(keep);
+                }
             }
 
             if (OpenSearch(keyinfo))
