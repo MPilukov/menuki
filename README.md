@@ -215,11 +215,11 @@ The tour is itself an ordinary config plus a few private `tour:*` actions - noth
 | Enter | Execute action |
 | Left/Right, PageUp/PageDown | Jump a screen (long menus) |
 | Home/End | First / last item |
-| X / Esc | Back to previous menu |
+| Esc | Back to previous menu (closes the search first, if open) |
 | ? | Show the selected item's description / help |
 | T | Toggle theme (dark / light / custom) |
 | E / Q / V / R | Edit JSON / Quick Edit / Validate / Reload config |
-| type to search | Filter items by name |
+| / | Search: filter items by name (then every key, letters included, goes to the query; Esc closes it) |
 
 ## Config Format
 

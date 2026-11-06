@@ -41,6 +41,7 @@ public class MenuEngine
     private readonly bool _editable;
 
     private string _searchQuery = "";
+    private bool _searching; // '/' opened the search: printable keys go to the query, not to commands
     private readonly List<MenuItem> _allItems;
 
     // Geometry of the frame on screen, set by every full render. The menu tracks rows itself
@@ -84,6 +85,38 @@ public class MenuEngine
                 .Where(i => i.Name.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase))
                 .ToList();
         _offset = 0;
+    }
+
+    /// <summary>
+    /// Handles a key while the search is open. Every printable character, letters of the
+    /// commands included, goes to the query; Esc closes the search, and so does Backspace
+    /// on an empty query. Returns false for keys the search leaves to the menu (arrows, Enter).
+    /// </summary>
+    private bool HandleSearchKey(ConsoleKeyInfo key)
+    {
+        if (key.Key == ConsoleKey.Escape)
+        {
+            _searching = false;
+            _searchQuery = "";
+        }
+        else if (key.Key == ConsoleKey.Backspace)
+        {
+            if (_searchQuery.Length > 0)
+                _searchQuery = _searchQuery[..^1];
+            else
+                _searching = false;
+        }
+        else if (!char.IsControl(key.KeyChar))
+        {
+            _searchQuery += key.KeyChar;
+        }
+        else
+        {
+            return false;
+        }
+
+        ApplySearch();
+        return true;
     }
 
     /// <summary>Columns a line may use. The last column stays free: writing into it makes some terminals wrap.</summary>
@@ -185,7 +218,7 @@ public class MenuEngine
             lines.Add(new Line((_theme.UseInfoBorder, "----------------------")));
         }
 
-        var message = _searchQuery.Length > 0 ? $"Search: {_searchQuery}" : _message;
+        var message = _searching ? $"Search: {_searchQuery}_" : _message; // "_" marks where typing goes
         if (!string.IsNullOrWhiteSpace(message))
         {
             // A long description wraps onto several lines, each of them a single screen row.
@@ -214,9 +247,10 @@ public class MenuEngine
             hints.Add("R: Reload");
         }
 
+        hints.Add("/: Search");
         hints.Add("?: Info");
         hints.Add("T: Theme");
-        hints.Add(_isRoot ? "Esc: Exit" : "Esc: Back");
+        hints.Add(_searching ? "Esc: Close search" : _isRoot ? "Esc: Exit" : "Esc: Back");
 
         if (withPaging)
             hints.Add("Left/Right: Page");
@@ -396,6 +430,11 @@ public class MenuEngine
                     Render(0);
                     continue;
                 }
+                if (_searching ? HandleSearchKey(ki) : OpenSearch(ki))
+                {
+                    WriteMenu(selectedItemIndex: 0);
+                    return RunMenu();
+                }
                 if (_editable && EditCommand(ki.Key) is { } editCmd)
                 {
                     SelectedIndex = 0;
@@ -409,30 +448,7 @@ public class MenuEngine
                     return RunMenu();
                 }
                 if (ki.Key == ConsoleKey.Escape)
-                {
-                    if (_searchQuery.Length > 0)
-                    {
-                        _searchQuery = "";
-                        ApplySearch();
-                        WriteMenu(selectedItemIndex: 0);
-                        return RunMenu();
-                    }
                     return null;
-                }
-                if (ki.Key == ConsoleKey.Backspace && _searchQuery.Length > 0)
-                {
-                    _searchQuery = _searchQuery[..^1];
-                    ApplySearch();
-                    WriteMenu(selectedItemIndex: 0);
-                    return RunMenu();
-                }
-                if (!char.IsControl(ki.KeyChar) && ki.KeyChar != ' ')
-                {
-                    _searchQuery += ki.KeyChar;
-                    ApplySearch();
-                    WriteMenu(selectedItemIndex: 0);
-                    return RunMenu();
-                }
             }
             while (true);
         }
@@ -497,6 +513,18 @@ public class MenuEngine
                 }
             }
 
+            if (_searching && HandleSearchKey(keyinfo))
+            {
+                WriteMenu(selectedItemIndex: 0);
+                return RunMenu();
+            }
+
+            if (OpenSearch(keyinfo))
+            {
+                WriteMenu(selectedItemIndex: index);
+                return RunMenu(index);
+            }
+
             if (keyinfo.Key == ConsoleKey.T)
             {
                 _theme.Toggle();
@@ -512,27 +540,7 @@ public class MenuEngine
             }
 
             if (keyinfo.Key == ConsoleKey.Escape)
-            {
-                if (_searchQuery.Length > 0)
-                {
-                    _searchQuery = "";
-                    ApplySearch();
-                    WriteMenu(selectedItemIndex: 0);
-                    return RunMenu();
-                }
                 break;
-            }
-
-            if (keyinfo.Key == ConsoleKey.Backspace)
-            {
-                if (_searchQuery.Length > 0)
-                {
-                    _searchQuery = _searchQuery[..^1];
-                    ApplySearch();
-                    WriteMenu(selectedItemIndex: 0);
-                    return RunMenu();
-                }
-            }
 
             if (keyinfo.KeyChar == '?')
             {
@@ -541,18 +549,20 @@ public class MenuEngine
                 continue;
             }
 
-            if (!char.IsControl(keyinfo.KeyChar) && keyinfo.KeyChar != ' ')
-            {
-                _searchQuery += keyinfo.KeyChar;
-                ApplySearch();
-                WriteMenu(selectedItemIndex: 0);
-                return RunMenu();
-            }
         }
         while (true);
 
         SelectedIndex = FullIndex(index);
         return null;
+    }
+
+    /// <summary>'/' opens the search (outside of it); returns whether it did.</summary>
+    private bool OpenSearch(ConsoleKeyInfo key)
+    {
+        if (_searching || key.KeyChar != '/')
+            return false;
+        _searching = true;
+        return true;
     }
 
     /// <summary>Info line shown for the '?' key: description plus optional help.</summary>

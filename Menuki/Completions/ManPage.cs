@@ -75,8 +75,9 @@ public static class ManPage
         .B -h\fR, \fB--help\fR, \fBhelp
         Show usage help and exit.
         .SH KEYS
-        In the interactive menu: arrow keys or j/k to move, Enter to select, Esc or q to go
-        back, T to cycle color themes, ? for item help, E to edit the JSON.
+        In the interactive menu: arrow keys to move, Enter to select, Esc to go back,
+        / to search by name, ? for item help, T to cycle color themes, E / Q / V / R to edit
+        the JSON, quick-edit, validate or reload the config.
         .SH FILES
         .TP
         .I ~/.menuki/settings.json
