@@ -245,7 +245,18 @@ The tour is itself an ordinary config plus a few private `tour:*` actions - noth
 | `start_menu` | string | ID of the first menu to display |
 | `theme` | string? | Default theme: `"dark"` (default), `"light"`, or `"custom"` |
 | `colors` | object? | Custom color scheme (used when theme is `"custom"` or as the third T-toggle option) |
+| `requires` | array? | External commands the config needs on PATH (see below) |
 | `menus` | object | Flat dictionary of menu definitions keyed by ID |
+
+#### `requires`
+
+```json
+"requires": [
+  { "command": "iterm-layout", "install": "brew install mpilukov/tap/iterm-layout", "os": "macos" }
+]
+```
+
+Each entry has a `command` (required, looked up on PATH), an optional `install` shell command, and an optional `os` (`macos`, `linux` or `windows`; when set, the entry is only checked on that OS). When the root menu opens and a command is missing, a line `Missing: <command> (install: <install>)` appears above the items and an `Install missing tools` item comes first: it shows the install commands, asks `y/N`, runs them and reloads the config, so the line and the item disappear once the tools are installed. With everything present the menu looks as before. `menuki validate` reports a malformed entry (no `command`, unknown `os`) as an error and a missing command as a warning (`ok` stays `true`). `menuki exec` and headless mode do not check `requires`.
 
 ### Menu
 

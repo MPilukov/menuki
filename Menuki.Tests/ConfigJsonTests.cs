@@ -75,4 +75,27 @@ public class ConfigJsonTests
         var config = JsonSerializer.Deserialize<MenuConfig>(json)!;
         Assert.Equal("", config.Menus["main"].Items[0].Action.Type);
     }
+
+    [Fact]
+    public void Parses_requires()
+    {
+        var json = """
+        {"requires":[{"command":"iterm-layout","install":"brew install x","os":"macos"},{"command":"ls"}],"menus":{}}
+        """;
+        var c = JsonSerializer.Deserialize<MenuConfig>(json)!;
+
+        Assert.Equal(2, c.Requires!.Count);
+        Assert.Equal("iterm-layout", c.Requires[0].Command);
+        Assert.Equal("brew install x", c.Requires[0].Install);
+        Assert.Equal("macos", c.Requires[0].Os);
+        Assert.Null(c.Requires[1].Install);
+        Assert.Null(c.Requires[1].Os);
+    }
+
+    [Fact]
+    public void Config_without_requires_has_null_requires()
+    {
+        var c = JsonSerializer.Deserialize<MenuConfig>("""{"menus":{}}""")!;
+        Assert.Null(c.Requires);
+    }
 }

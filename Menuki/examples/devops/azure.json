@@ -1,6 +1,9 @@
 {
   "title": "Azure Manager",
   "start_menu": "main",
+  "requires": [
+    { "command": "az", "install": "brew install azure-cli" }
+  ],
   "menus": {
     "main": {
       "title": "Azure",

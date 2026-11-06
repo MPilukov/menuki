@@ -1,6 +1,9 @@
 {
   "title": ".NET Developer",
   "start_menu": "main",
+  "requires": [
+    { "command": "dotnet", "install": "brew install dotnet" }
+  ],
   "menus": {
     "main": {
       "title": ".NET Developer",

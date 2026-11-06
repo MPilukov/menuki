@@ -1,6 +1,9 @@
 {
   "title": "Docker Manager",
   "start_menu": "main",
+  "requires": [
+    { "command": "docker" }
+  ],
   "menus": {
     "main": {
       "title": "Docker",

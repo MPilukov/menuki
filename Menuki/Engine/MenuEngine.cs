@@ -124,6 +124,9 @@ public class MenuEngine
 
     private bool Scrolled => _currentItems.Count > _itemRows;
 
+    /// <summary>A standing line (e.g. missing tools) shown whenever no other message or search is on screen.</summary>
+    public string? Notice { get; init; }
+
     public void WriteMenu(int selectedItemIndex, string? pushTextToUser = null)
     {
         _message = pushTextToUser;
@@ -218,7 +221,7 @@ public class MenuEngine
             lines.Add(new Line((_theme.UseInfoBorder, "----------------------")));
         }
 
-        var message = _searching ? $"Search: {_searchQuery}_" : _message; // "_" marks where typing goes
+        var message = _searching ? $"Search: {_searchQuery}_" : _message ?? Notice; // "_" marks where typing goes
         if (!string.IsNullOrWhiteSpace(message))
         {
             // A long description wraps onto several lines, each of them a single screen row.
