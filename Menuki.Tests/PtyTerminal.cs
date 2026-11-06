@@ -23,7 +23,8 @@ internal sealed class PtyTerminal : IDisposable
     private int _cursor;
     private int _answeredQueries;
 
-    public PtyTerminal(string configPath, string settingsHome)
+    /// <param name="size">Window rows and columns; null keeps the pty's default size.</param>
+    public PtyTerminal(string configPath, string settingsHome, (int Rows, int Cols)? size = null)
     {
         var dll = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../Menuki/bin",
             AppContext.BaseDirectory.Contains("/Release/") ? "Release" : "Debug", "net8.0", "Menuki.dll"));
@@ -33,9 +34,12 @@ internal sealed class PtyTerminal : IDisposable
             RedirectStandardOutput = true,
             UseShellExecute = false
         };
+        var command = $"dotnet {Quote(dll)} --config {Quote(configPath)}";
+        if (size is { } s)
+            command = $"stty rows {s.Rows} cols {s.Cols}; exec {command}";
         if (OperatingSystem.IsMacOS())
         {
-            foreach (var arg in new[] { "-q", "/dev/null", "dotnet", dll, "--config", configPath })
+            foreach (var arg in new[] { "-q", "/dev/null", "sh", "-c", command })
                 info.ArgumentList.Add(arg);
         }
         else
@@ -43,7 +47,7 @@ internal sealed class PtyTerminal : IDisposable
             info.ArgumentList.Add("-q");
             info.ArgumentList.Add("-e");   // exit with the CLI's status, not script's
             info.ArgumentList.Add("-c");
-            info.ArgumentList.Add($"dotnet {Quote(dll)} --config {Quote(configPath)}");
+            info.ArgumentList.Add(command);
             info.ArgumentList.Add("/dev/null");
         }
         info.Environment["DOTNET_ROLL_FORWARD"] = "Major";

@@ -39,14 +39,27 @@ public class MenuEngine
 
     private readonly bool _isRoot;
     private readonly bool _editable;
-    private readonly bool _needShortVersion;
-    private int _shortVersionPage;
-    private readonly int _shortVersionSize;
-    private readonly List<MenuItem>? _savedAllCurrentItems;
-    private int _itemsStartLine;
 
     private string _searchQuery = "";
     private readonly List<MenuItem> _allItems;
+
+    // Geometry of the frame on screen, set by every full render. The menu tracks rows itself
+    // (from the top after Console.Clear) instead of asking the terminal where the cursor is,
+    // and keeps the frame within the window, so a row number always points at the same line.
+    private int _width;
+    private int _height;
+    private int _titleRow = -1;
+    private int _itemsTop;
+    private int _itemRows;
+    private int _offset; // index of the first item on screen when the list is scrolled
+    private string? _message;
+    private int _selected; // selected index in _currentItems (filtered); SelectedIndex is in the full list
+
+    /// <summary>A screen line: text segments, each in its own colour.</summary>
+    private sealed record Line(params (Action Style, string Text)[] Segments);
+
+    /// <summary>Stands for the title line, which WriteTitle paints (its counter changes while scrolling).</summary>
+    private static readonly Line TitleLine = new();
 
     /// <summary>Index of the item that was selected when the loop last returned - used to restore selection.</summary>
     public int SelectedIndex { get; private set; }
@@ -59,70 +72,55 @@ public class MenuEngine
         _isRoot = isRoot;
         _editable = editable;
 
-        // Console.WindowWidth can be 0 when the size is undetermined (some ptys / redirected
-        // consoles); guard the truncation so a negative budget never throws.
-        var width = SafeWindowWidth();
-        _currentItems = new List<MenuItem>();
-        foreach (var item in items)
-        {
-            var budget = width - Prefix.Length - 5;
-            var name = (width > 0 && item.Name.Length + Prefix.Length > width && budget > 0)
-                ? item.Name.Substring(0, budget)
-                : item.Name;
-
-            _currentItems.Add(new MenuItem(name, item.Action, item.Description, item.Help));
-        }
-
-        _allItems = new List<MenuItem>(_currentItems);
-
-        var height = SafeWindowHeight();
-        if (height > 0 && height <= _currentItems.Count)
-        {
-            _needShortVersion = true;
-            _shortVersionSize = Math.Max(1, height - 2);
-            _savedAllCurrentItems = _currentItems;
-        }
-    }
-
-    private List<MenuItem> GetShortItems(int pageAdd)
-    {
-        _shortVersionPage += pageAdd;
-        var maxPage = _savedAllCurrentItems!.Count / _shortVersionSize;
-
-        if (_shortVersionPage < 0)
-            _shortVersionPage = maxPage;
-        else if (_shortVersionPage > maxPage)
-            _shortVersionPage = 0;
-
-        return _savedAllCurrentItems
-            .Skip(_shortVersionPage * _shortVersionSize)
-            .Take(_shortVersionSize)
-            .ToList();
+        _currentItems = new List<MenuItem>(items);
+        _allItems = new List<MenuItem>(items);
     }
 
     private void ApplySearch()
     {
-        if (_searchQuery.Length == 0)
-        {
-            _currentItems = new List<MenuItem>(_allItems);
-            _shortVersionPage = 0;
-        }
-        else
-        {
-            _currentItems = _allItems
+        _currentItems = _searchQuery.Length == 0
+            ? new List<MenuItem>(_allItems)
+            : _allItems
                 .Where(i => i.Name.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase))
                 .ToList();
-        }
+        _offset = 0;
     }
 
-    public void WriteMenu(int selectedItemIndex, string? pushTextToUser = null, int? pageAdd = null)
+    /// <summary>Columns a line may use. The last column stays free: writing into it makes some terminals wrap.</summary>
+    private int LineWidth => _width > 1 ? _width - 1 : int.MaxValue;
+
+    private bool Scrolled => _currentItems.Count > _itemRows;
+
+    public void WriteMenu(int selectedItemIndex, string? pushTextToUser = null)
     {
-        if (_needShortVersion && _searchQuery.Length == 0)
+        _message = pushTextToUser;
+        Render(selectedItemIndex);
+    }
+
+    private void Render(int selectedIndex)
+    {
+        _width = SafeWindowWidth();
+        _height = SafeWindowHeight();
+
+        var header = BuildHeader();
+        var footer = BuildFooter(withPaging: false);
+        var fit = MenuLayout.Compute(_height, header.Count, footer.Count, _currentItems.Count);
+        if (fit.ItemRows < _currentItems.Count)
         {
-            var items = GetShortItems(pageAdd: pageAdd ?? 0);
-            _currentItems = items;
-            Console.SetCursorPosition(0, 0);
+            footer = BuildFooter(withPaging: true);
+            fit = MenuLayout.Compute(_height, header.Count, footer.Count, _currentItems.Count);
         }
+
+        // Lines that did not fit go from the top of the header and the end of the footer.
+        header = header.Skip(header.Count - fit.HeaderLines).ToList();
+        if (fit.FooterLines < footer.Count && fit.FooterLines > 0)
+            footer.RemoveAt(0); // the blank spacer goes before any hint
+        footer = footer.Take(fit.FooterLines).ToList();
+        _itemRows = fit.ItemRows;
+        _titleRow = fit.HeaderLines > 0 ? fit.HeaderLines - 1 : -1;
+        _itemsTop = fit.HeaderLines;
+        if (_currentItems.Count > 0)
+            EnsureVisible(Math.Clamp(selectedIndex, 0, _currentItems.Count - 1));
 
         _theme.UseText();
         Console.Clear();
@@ -130,106 +128,82 @@ public class MenuEngine
         // cursor stays visible and marks the selected row itself.
         SetCursorVisible(!AppSettings.ShowSelectionMarker);
 
-        if (_addInfo != null && _addInfo.Count > 0)
+        // Lines are separated, not terminated, by newlines: a newline after the bottom row
+        // would scroll the whole frame up by one.
+        var first = true;
+        void NewLine()
         {
-            _theme.UseInfoBorder();
-            Console.WriteLine("-------- Info --------");
-
-            var maxLength = _addInfo.Select(x => x.Key).Max(x => x.Length);
-
-            foreach (var data in _addInfo)
-            {
-                _theme.UseInfoLabel();
-                Console.Write(Prefix);
-                Console.Write(data.Key);
-
-                if (maxLength != data.Key.Length)
-                {
-                    var tabs = new string(' ', maxLength - data.Key.Length);
-                    Console.Write(tabs);
-                }
-
-                Console.Write(" : ");
-
-                _theme.UseInfoValue();
-                Console.WriteLine(data.Value);
-            }
-
-            _theme.UseInfoBorder();
-            Console.WriteLine("----------------------");
+            if (!first) Console.WriteLine();
+            first = false;
         }
 
-        if (_searchQuery.Length > 0)
+        foreach (var line in header)
         {
-            _theme.UseMessage();
-            Console.Write(Prefix);
-            Console.WriteLine($"Search: {_searchQuery}");
-            _theme.UseText();
+            NewLine();
+            WriteLine(line);
         }
-        else if (!string.IsNullOrWhiteSpace(pushTextToUser))
+
+        if (_currentItems.Count == 0)
         {
-            _theme.UseMessage();
-            Console.Write(Prefix);
-            Console.WriteLine(pushTextToUser);
-            _theme.UseText();
+            NewLine();
+            WriteLine(new Line((_theme.UseMessage, $"{Prefix}No matches")));
         }
         else
         {
-            Console.WriteLine();
+            for (var row = 0; row < _itemRows; row++)
+            {
+                NewLine();
+                var idx = _offset + row;
+                WriteItem(idx, idx == selectedIndex);
+            }
         }
 
-        _theme.UseTitle();
-        Console.WriteLine($"-------- {_menuTitle} --------");
+        foreach (var line in footer)
+        {
+            NewLine();
+            WriteLine(line);
+        }
+
         _theme.UseText();
-
-        if (OperatingSystem.IsWindows())
-        {
-            try
-            {
-                if (Console.BufferHeight < _currentItems.Count + Console.CursorTop)
-                    Console.SetBufferSize(Console.BufferWidth, Console.BufferHeight + _currentItems.Count + Console.CursorTop + 1);
-            }
-            catch
-            {
-                // ignore
-            }
-        }
-
-        _itemsStartLine = Console.CursorTop;
-
-        if (_currentItems.Count == 0 && _searchQuery.Length > 0)
-        {
-            _theme.UseMessage();
-            Console.WriteLine($"{Prefix}No matches");
-            _theme.UseText();
-        }
-        else
-        {
-            for (var idx = 0; idx < _currentItems.Count; idx++)
-            {
-                var item = _currentItems[idx];
-
-                if (idx == selectedItemIndex)
-                {
-                    _theme.UseSelected();
-                    Console.WriteLine($"{SelectedPrefix}{item.Name}");
-                    _theme.UseText();
-                }
-                else
-                {
-                    Console.WriteLine($"{Prefix}{item.Name}");
-                }
-            }
-        }
-
-        WriteHints();
     }
 
-    private void WriteHints()
+    private List<Line> BuildHeader()
     {
-        Console.WriteLine();
-        _theme.UseInfoBorder();
+        var lines = new List<Line>();
 
+        if (_addInfo != null && _addInfo.Count > 0)
+        {
+            lines.Add(new Line((_theme.UseInfoBorder, "-------- Info --------")));
+
+            var maxLength = _addInfo.Select(x => x.Key).Max(x => x.Length);
+            foreach (var data in _addInfo)
+            {
+                var label = Prefix + data.Key + new string(' ', maxLength - data.Key.Length) + " : ";
+                lines.Add(new Line((_theme.UseInfoLabel, label), (_theme.UseInfoValue, data.Value)));
+            }
+
+            lines.Add(new Line((_theme.UseInfoBorder, "----------------------")));
+        }
+
+        var message = _searchQuery.Length > 0 ? $"Search: {_searchQuery}" : _message;
+        if (!string.IsNullOrWhiteSpace(message))
+        {
+            // A long description wraps onto several lines, each of them a single screen row.
+            foreach (var part in message.Replace("\r", "").Split('\n'))
+                foreach (var wrapped in TerminalText.Wrap(Prefix + part, LineWidth, Prefix))
+                    lines.Add(new Line((_theme.UseMessage, wrapped)));
+        }
+        else
+        {
+            lines.Add(new Line((_theme.UseText, "")));
+        }
+
+        lines.Add(TitleLine);
+        return lines;
+    }
+
+    private List<Line> BuildFooter(bool withPaging)
+    {
         var hints = new List<string> { "Up/Down: Navigate", "Enter: Select" };
 
         if (_editable)
@@ -244,11 +218,167 @@ public class MenuEngine
         hints.Add("T: Theme");
         hints.Add(_isRoot ? "Esc: Exit" : "Esc: Back");
 
-        if (_needShortVersion)
+        if (withPaging)
             hints.Add("Left/Right: Page");
 
-        Console.WriteLine($"{Prefix}{string.Join("  |  ", hints)}");
+        var lines = new List<Line> { new((_theme.UseText, "")) };
+        foreach (var hintLine in TerminalText.JoinWrapped(hints, "  |  ", Prefix, LineWidth))
+            lines.Add(new Line((_theme.UseInfoBorder, hintLine)));
+        return lines;
+    }
+
+    /// <summary>The title cut to the line width; while scrolling the N/M counter stays and the name gives way.</summary>
+    private string TitleText()
+    {
+        var counter = Scrolled && _currentItems.Count > 0 ? $"  {_selected + 1}/{_currentItems.Count}" : "";
+        var room = LineWidth == int.MaxValue ? int.MaxValue : LineWidth - TerminalText.Width(counter);
+        if (room < 8) // too narrow for both: the counter alone
+            return TerminalText.Truncate(counter.TrimStart(), LineWidth);
+        return TerminalText.Truncate($"-------- {_menuTitle} --------", room) + counter;
+    }
+
+    /// <summary>Writes a line's segments in their colours, cut to the line width.</summary>
+    private void WriteLine(Line line)
+    {
+        if (ReferenceEquals(line, TitleLine))
+        {
+            WriteTitle();
+            return;
+        }
+
+        var budget = LineWidth;
+        foreach (var (style, text) in line.Segments)
+        {
+            if (budget <= 0) break;
+            var fitted = TerminalText.Truncate(text, budget);
+            style();
+            Console.Write(fitted);
+            budget -= TerminalText.Width(fitted);
+        }
         _theme.UseText();
+    }
+
+    private void WriteTitle()
+    {
+        _theme.UseTitle();
+        Console.Write(TitleText());
+        _theme.UseText();
+    }
+
+    /// <summary>Writes the row for item <paramref name="index"/> at the cursor.</summary>
+    private void WriteItem(int index, bool selected)
+    {
+        var budget = LineWidth;
+        var name = TerminalText.Truncate(_currentItems[index].Name, budget == int.MaxValue ? budget : budget - Prefix.Length);
+        if (selected)
+        {
+            _theme.UseSelected();
+            Console.Write($"{SelectedPrefix}{name}");
+        }
+        else
+        {
+            _theme.UseText();
+            Console.Write($"{Prefix}{name}");
+        }
+        _theme.UseText();
+    }
+
+    /// <summary>Repaints one item row in place, clearing what an earlier, longer text left there.</summary>
+    private void RepaintItem(int index, bool selected)
+    {
+        var row = index - _offset;
+        if (index < 0 || index >= _currentItems.Count || row < 0 || row >= _itemRows) return;
+
+        Console.SetCursorPosition(0, _itemsTop + row);
+        WriteItem(index, selected);
+        if (_width > 1)
+        {
+            var used = TerminalText.Width(Prefix) + TerminalText.Width(
+                TerminalText.Truncate(_currentItems[index].Name, LineWidth - Prefix.Length));
+            if (used < LineWidth)
+                Console.Write(new string(' ', LineWidth - used));
+        }
+    }
+
+    private void RepaintTitle()
+    {
+        if (_titleRow < 0) return;
+        Console.SetCursorPosition(0, _titleRow);
+        WriteTitle();
+        if (_width > 1)
+        {
+            var used = TerminalText.Width(TitleText());
+            if (used < LineWidth)
+                Console.Write(new string(' ', LineWidth - used));
+        }
+    }
+
+    /// <summary>Scrolls so <paramref name="index"/> is on screen; returns whether the view moved.</summary>
+    private bool EnsureVisible(int index)
+    {
+        var before = _offset;
+        if (index < _offset)
+            _offset = index;
+        else if (index >= _offset + _itemRows)
+            _offset = index - _itemRows + 1;
+        _offset = Math.Clamp(_offset, 0, Math.Max(0, _currentItems.Count - _itemRows));
+        _selected = index;
+        return _offset != before;
+    }
+
+    /// <summary>Moves the selection, repainting only the rows that changed unless the view scrolled.</summary>
+    private void Select(int from, int to)
+    {
+        if (EnsureVisible(to))
+        {
+            for (var i = _offset; i < _offset + _itemRows && i < _currentItems.Count; i++)
+                RepaintItem(i, i == to);
+        }
+        else
+        {
+            RepaintItem(from, false);
+            RepaintItem(to, true);
+        }
+
+        if (Scrolled)
+            RepaintTitle();
+        ParkCursor(to);
+    }
+
+    /// <summary>Leaves the cursor at the start of the selected row (it is the cue when the marker is off).</summary>
+    private void ParkCursor(int index)
+    {
+        var row = index - _offset;
+        if (row >= 0 && row < _itemRows)
+            Console.SetCursorPosition(0, _itemsTop + row);
+    }
+
+    /// <summary>
+    /// Waits for a key, or returns null when the window is resized so the caller can redraw
+    /// the menu for the new size (a pane split or a font change otherwise leaves it garbled).
+    /// </summary>
+    private ConsoleKeyInfo? ReadKeyOrResize()
+    {
+        while (true)
+        {
+            bool available;
+            try { available = Console.KeyAvailable; }
+            catch (InvalidOperationException) { return Console.ReadKey(intercept: true); }
+
+            if (available)
+                return Console.ReadKey(intercept: true);
+            if (SafeWindowWidth() != _width || SafeWindowHeight() != _height)
+                return null;
+            Thread.Sleep(50);
+        }
+    }
+
+    /// <summary>The index of <paramref name="item"/> in the unfiltered list, which callers use to restore selection.</summary>
+    private int FullIndex(int index)
+    {
+        if (index < 0 || index >= _currentItems.Count) return 0;
+        var full = _allItems.IndexOf(_currentItems[index]);
+        return full >= 0 ? full : index;
     }
 
     /// <summary>
@@ -259,11 +389,19 @@ public class MenuEngine
     {
         if (_currentItems.Count == 0)
         {
-            ConsoleKeyInfo ki;
             do
             {
-                ki = Console.ReadKey(intercept: true);
-                if (_editable && EditCommand(ki.Key) is { } editCmd) { SetCursorVisible(true); return editCmd; }
+                if (ReadKeyOrResize() is not { } ki)
+                {
+                    Render(0);
+                    continue;
+                }
+                if (_editable && EditCommand(ki.Key) is { } editCmd)
+                {
+                    SelectedIndex = 0;
+                    SetCursorVisible(true);
+                    return editCmd;
+                }
                 if (ki.Key == ConsoleKey.T)
                 {
                     _theme.Toggle();
@@ -299,40 +437,41 @@ public class MenuEngine
             while (true);
         }
 
-        ConsoleKeyInfo keyinfo;
         var index = Math.Clamp(startIndex, 0, _currentItems.Count - 1);
-        SelectedIndex = index;
-
-        Console.SetCursorPosition(0, _itemsStartLine + index);
+        if (index != _selected)
+            Render(index); // the caller rendered another selection
+        SelectedIndex = FullIndex(index);
+        ParkCursor(index);
 
         do
         {
-            keyinfo = Console.ReadKey(intercept: true);
-
-            var preSelectedStr = _currentItems[index].Name;
-            _theme.UseText();
-
-            Console.SetCursorPosition(0, _itemsStartLine + index);
-            Console.Write($"{Prefix}{preSelectedStr}");
-
-            if (keyinfo.Key == ConsoleKey.DownArrow)
+            if (ReadKeyOrResize() is not { } keyinfo)
             {
-                index = (index + 1 < _currentItems.Count) ? index + 1 : 0;
-
-                var str = _currentItems[index].Name;
-                _theme.UseSelected();
-                Console.SetCursorPosition(0, _itemsStartLine + index);
-                Console.Write($"{SelectedPrefix}{str}");
+                Render(index);
+                ParkCursor(index);
+                continue;
             }
 
-            if (keyinfo.Key == ConsoleKey.UpArrow)
+            var last = _currentItems.Count - 1;
+            int? target = keyinfo.Key switch
             {
-                index = (index - 1 >= 0) ? index - 1 : _currentItems.Count - 1;
+                ConsoleKey.DownArrow => index < last ? index + 1 : 0,
+                ConsoleKey.UpArrow => index > 0 ? index - 1 : last,
+                ConsoleKey.PageDown => Math.Min(last, index + _itemRows),
+                ConsoleKey.PageUp => Math.Max(0, index - _itemRows),
+                ConsoleKey.RightArrow when Scrolled => Math.Min(last, index + _itemRows),
+                ConsoleKey.LeftArrow when Scrolled => Math.Max(0, index - _itemRows),
+                ConsoleKey.Home => 0,
+                ConsoleKey.End => last,
+                _ => null
+            };
 
-                var str = _currentItems[index].Name;
-                _theme.UseSelected();
-                Console.SetCursorPosition(0, _itemsStartLine + index);
-                Console.Write($"{SelectedPrefix}{str}");
+            if (target is { } to)
+            {
+                if (to != index)
+                    Select(index, to);
+                index = to;
+                continue;
             }
 
             if (keyinfo.Key == ConsoleKey.Enter)
@@ -343,7 +482,7 @@ public class MenuEngine
                     var result = _currentItems[index].Action.Execute();
                     if (result != null)
                     {
-                        SelectedIndex = index;
+                        SelectedIndex = FullIndex(index);
                         return result;
                     }
 
@@ -367,23 +506,9 @@ public class MenuEngine
 
             if (_editable && EditCommand(keyinfo.Key) is { } editCmd)
             {
+                SelectedIndex = FullIndex(index);
                 SetCursorVisible(true); // handing off to the editor, which reads input
                 return editCmd;
-            }
-
-            if (_needShortVersion && _searchQuery.Length == 0)
-            {
-                if (keyinfo.Key == ConsoleKey.RightArrow)
-                {
-                    WriteMenu(selectedItemIndex: 0, pageAdd: 1);
-                    return RunMenu();
-                }
-
-                if (keyinfo.Key == ConsoleKey.LeftArrow)
-                {
-                    WriteMenu(selectedItemIndex: 0, pageAdd: -1);
-                    return RunMenu();
-                }
             }
 
             if (keyinfo.Key == ConsoleKey.Escape)
@@ -412,7 +537,7 @@ public class MenuEngine
             if (keyinfo.KeyChar == '?')
             {
                 WriteMenu(selectedItemIndex: index, pushTextToUser: Describe(_currentItems[index]));
-                Console.SetCursorPosition(0, _itemsStartLine + index);
+                ParkCursor(index);
                 continue;
             }
 
@@ -426,6 +551,7 @@ public class MenuEngine
         }
         while (true);
 
+        SelectedIndex = FullIndex(index);
         return null;
     }
 

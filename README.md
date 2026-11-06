@@ -24,7 +24,7 @@ Build interactive terminal menus and runbooks from a single JSON file - the same
 - **Agent / headless mode** - `list` / `exec` subcommands drive menus non-interactively (JSON in, JSON out)
 - **MCP server** - let an AI agent author, validate and save nested menu configs
 - **Navigation stack** - submenus push/pop automatically, X goes back
-- **Pagination** - long menus paginated with Left/Right arrows
+- **Fits any window** - a menu taller than the terminal scrolls with the selection (position shown next to the title), and redraws when the window is resized
 - **Info panel** - static values or dynamic output from shell commands
 - **Cross-platform** - Windows, macOS, Linux
 
@@ -213,7 +213,8 @@ The tour is itself an ordinary config plus a few private `tour:*` actions - noth
 |-----|--------|
 | Up/Down | Move selection |
 | Enter | Execute action |
-| Left/Right | Pagination (long menus) |
+| Left/Right, PageUp/PageDown | Jump a screen (long menus) |
+| Home/End | First / last item |
 | X / Esc | Back to previous menu |
 | ? | Show the selected item's description / help |
 | T | Toggle theme (dark / light / custom) |
