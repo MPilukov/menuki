@@ -89,14 +89,33 @@ internal sealed class PtyTerminal : IDisposable
         }
     }
 
-    /// <summary>Wait for the next rendered menu and check its title.</summary>
-    public async Task ExpectMenu(string title)
+    public const string Backspace = "\u007f";
+
+    /// <summary>Wait for the next rendered menu, check its title and return the frame (header and items).</summary>
+    public async Task<string> ExpectMenu(string title)
     {
         var frame = await Until("Up/Down: Navigate");
         Assert.Contains($"-------- {title} --------", frame);
+        return frame;
+    }
+
+    /// <summary>Everything the CLI has rendered so far.</summary>
+    public string Output
+    {
+        get { lock (_gate) return _output.ToString(); }
     }
 
     public Task<string> ExpectText(string text) => Until(text);
+
+    /// <summary>
+    /// Wait for <paramref name="text"/> and then for the end of the menu frame it is in. Returns only
+    /// what follows the text (the items of that frame), not earlier frames rendered on the way.
+    /// </summary>
+    public async Task<string> ExpectFrameWith(string text)
+    {
+        await Until(text);
+        return await Until("Up/Down: Navigate");
+    }
 
     /// <summary>Wait for <paramref name="token"/> after the last match and return what was rendered up to it.</summary>
     private async Task<string> Until(string token)
