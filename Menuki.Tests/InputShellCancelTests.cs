@@ -9,6 +9,8 @@ public class InputShellCancelTests : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), $"menuki-input-cancel-{Guid.NewGuid():N}");
     private string Marker => Path.Combine(_dir, "ran.txt");
+    private string History => Path.Combine(_dir, ".menuki", "input_history");
+    private string HistoryText => File.Exists(History) ? File.ReadAllText(History) : "";
 
     public InputShellCancelTests() => Directory.CreateDirectory(_dir);
 
@@ -77,6 +79,7 @@ public class InputShellCancelTests : IDisposable
         terminal.Send(Escape);
         await terminal.ExpectExit();
         Assert.False(File.Exists(Marker));
+        Assert.DoesNotContain("half-typed", HistoryText);
     }
 
     [Fact]
@@ -111,5 +114,6 @@ public class InputShellCancelTests : IDisposable
         terminal.Send(Escape);
         await terminal.ExpectExit();
         Assert.Equal("staging abc", File.ReadAllText(Marker).Trim());
+        Assert.Contains("abc", HistoryText);   // proves the history lands in the test's HOME
     }
 }

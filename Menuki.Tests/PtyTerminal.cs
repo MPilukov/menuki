@@ -42,12 +42,16 @@ internal sealed class PtyTerminal : IDisposable
         else
         {
             info.ArgumentList.Add("-q");
+            info.ArgumentList.Add("-e");   // exit with the CLI's status, not script's
             info.ArgumentList.Add("-c");
             info.ArgumentList.Add($"dotnet {Quote(dll)} --config {Quote(configPath)}");
             info.ArgumentList.Add("/dev/null");
         }
         info.Environment["DOTNET_ROLL_FORWARD"] = "Major";
         info.Environment["MENUKI_HOME"] = Path.Combine(settingsHome, "settings");
+        // Input history and other ~/.menuki files follow the user profile: keep them out of the real home.
+        info.Environment["HOME"] = settingsHome;
+        info.Environment["USERPROFILE"] = settingsHome;
         _process = Process.Start(info)!;
         _reader = ReadOutput();
     }
