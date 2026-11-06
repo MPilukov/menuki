@@ -141,6 +141,60 @@ public class RequiresTests : IDisposable
     }
 
     [Fact]
+    public async Task Notice_stays_after_a_redraw()
+    {
+        if (OperatingSystem.IsWindows()) return;
+        var path = WriteMenu(new object[] { new { command = "menuki-absent-tool", install = "echo hi" } });
+
+        using var terminal = new PtyTerminal(path, _dir);
+        await terminal.ExpectMenu("Main");
+        terminal.Send("/");                         // opening the search replaces the line...
+        await terminal.ExpectFrameWith("Search: _");
+        terminal.Send(Escape);                      // ...closing it must bring it back
+        Assert.Contains("Missing: menuki-absent-tool", await terminal.ExpectMenu("Main"));
+    }
+
+    [Fact]
+    public async Task Start_menu_reached_as_a_submenu_keeps_the_right_selection()
+    {
+        if (OperatingSystem.IsWindows()) return;
+        var config = new
+        {
+            title = "Req test",
+            start_menu = "main",
+            requires = new object[] { new { command = "menuki-absent-tool" } },
+            menus = new Dictionary<string, object>
+            {
+                ["main"] = new
+                {
+                    title = "Main",
+                    items = new object[]
+                    {
+                        new { name = "Go child", action = new { type = "submenu", menu = "child" } },
+                        new { name = "Leave", action = new { type = "exit" } }
+                    }
+                },
+                ["child"] = new
+                {
+                    title = "Child",
+                    items = new object[] { new { name = "Back to main", action = new { type = "submenu", menu = "main" } } }
+                }
+            }
+        };
+        var path = Path.Combine(_dir, "main.json");
+        File.WriteAllText(path, JsonSerializer.Serialize(config));
+
+        using var terminal = new PtyTerminal(path, _dir);
+        await terminal.ExpectMenu("Main");
+        terminal.Send(Down + Enter);                // past "Install missing tools" to "Go child"
+        await terminal.ExpectMenu("Child");
+        terminal.Send(Enter);                       // main again, now as a submenu: no install item
+        var frame = await terminal.ExpectMenu("Main");
+        Assert.DoesNotContain("Install missing tools", frame);
+        Assert.Contains("▶ Go child", frame);
+    }
+
+    [Fact]
     public async Task Install_item_runs_the_command_and_the_notice_disappears()
     {
         if (OperatingSystem.IsWindows()) return;

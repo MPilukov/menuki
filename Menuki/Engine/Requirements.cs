@@ -28,7 +28,7 @@ public static class Requirements
         path ??= Environment.GetEnvironmentVariable("PATH") ?? "";
         foreach (var req in config.Requires)
         {
-            if (string.IsNullOrWhiteSpace(req.Command) || !AppliesTo(req, os))
+            if (req == null || string.IsNullOrWhiteSpace(req.Command) || !AppliesTo(req, os))
                 continue;
             if (!IsOnPath(req.Command.Trim(), path))
                 result.Add(req);

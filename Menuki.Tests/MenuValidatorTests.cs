@@ -115,6 +115,16 @@ public class MenuValidatorTests
     }
 
     [Fact]
+    public void Null_requires_entry_is_an_error_not_a_crash()
+    {
+        var c = WithRequires(new RequirementDefinition[] { null! });
+        var r = MenuValidator.Validate(c, Path.GetTempPath(), "linux");
+        Assert.False(r.Ok);
+        Assert.Contains(r.Issues, i => i.Level == "error" && i.Where == "requires[0]");
+        Assert.Empty(Menuki.Engine.Requirements.Missing(c, path: "", os: "linux"));
+    }
+
+    [Fact]
     public void Missing_required_command_is_a_warning_and_validation_still_passes()
     {
         var dir = Path.Combine(Path.GetTempPath(), $"menuki-val-{Guid.NewGuid():N}");

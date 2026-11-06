@@ -81,15 +81,21 @@ public static class Navigator
                     "Run the install commands for the tools this menu needs."));
             }
 
-            var startIndex = selectedByMenu.GetValueOrDefault(currentMenuId, 0);
-            var engine = new MenuEngine(menuDef.Title, menuItems, theme, infoPanel.Count > 0 ? infoPanel : null, isRoot);
-            engine.WriteMenu(selectedItemIndex: startIndex, pushTextToUser: missingNotice);
+            // selectedByMenu keeps indexes of the menu's own items; the install item shifts them on screen.
+            var shift = missingNotice != null ? 1 : 0;
+            // First visit: the cursor starts on the install item; coming back: on the item left last time.
+            var startIndex = selectedByMenu.TryGetValue(currentMenuId, out var saved) ? saved + shift : 0;
+            var engine = new MenuEngine(menuDef.Title, menuItems, theme, infoPanel.Count > 0 ? infoPanel : null, isRoot)
+            {
+                Notice = missingNotice
+            };
+            engine.WriteMenu(selectedItemIndex: startIndex);
 
             var result = engine.RunMenu(startIndex);
 
             // Whatever the item did (a submenu, another config, the editor), come back to it.
             if (result != null)
-                selectedByMenu[currentMenuId] = engine.SelectedIndex;
+                selectedByMenu[currentMenuId] = Math.Max(0, engine.SelectedIndex - shift);
 
             if (result != null && result.StartsWith(OpenConfigPrefix, StringComparison.Ordinal))
             {

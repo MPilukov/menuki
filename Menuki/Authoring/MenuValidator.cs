@@ -66,6 +66,12 @@ public static class MenuValidator
         {
             var req = config.Requires[i];
             var where = $"requires[{i}]";
+            if (req == null)
+            {
+                issues.Add(new("error", where, "an entry must be an object with a 'command'."));
+                shapeOk = false;
+                continue;
+            }
             if (string.IsNullOrWhiteSpace(req.Command))
             {
                 issues.Add(new("error", where, "'command' is required."));
