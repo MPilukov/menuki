@@ -31,7 +31,6 @@ internal sealed class PtyTerminal : IDisposable
         {
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
-            RedirectStandardError = true,
             UseShellExecute = false
         };
         if (OperatingSystem.IsMacOS())
