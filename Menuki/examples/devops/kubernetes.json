@@ -1,6 +1,9 @@
 {
   "title": "Kubernetes Manager",
   "start_menu": "main",
+  "requires": [
+    { "command": "kubectl", "install": "brew install kubernetes-cli" }
+  ],
   "menus": {
     "main": {
       "title": "Kubernetes",

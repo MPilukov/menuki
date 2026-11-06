@@ -2,6 +2,9 @@
   "$schema": "../../../menuki.schema.json",
   "title": "Kubernetes Ops",
   "start_menu": "main",
+  "requires": [
+    { "command": "kubectl", "install": "brew install kubernetes-cli" }
+  ],
   "menus": {
     "main": {
       "title": "kubectl (read-only)",

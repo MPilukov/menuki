@@ -43,6 +43,20 @@
       "type": "string",
       "description": "Editor command used by the E (Edit JSON) key, e.g. 'code --wait', 'subl -w', 'nano'. GUI editors get a wait flag added automatically."
     },
+    "requires": {
+      "type": "array",
+      "description": "External commands this config needs on PATH. A missing one is shown above the root menu, with an 'Install missing tools' item that runs the install commands.",
+      "items": {
+        "type": "object",
+        "required": ["command"],
+        "additionalProperties": false,
+        "properties": {
+          "command": { "type": "string", "minLength": 1, "description": "Command looked up on PATH, e.g. 'kubectl'." },
+          "install": { "type": "string", "description": "Shell command that installs it, e.g. 'brew install kubernetes-cli'." },
+          "os": { "type": "string", "enum": ["macos", "linux", "windows"], "description": "Apply the requirement only on this OS." }
+        }
+      }
+    },
     "menus": {
       "type": "object",
       "description": "Map of menuId -> menu definition. Nest menus via 'submenu' actions.",

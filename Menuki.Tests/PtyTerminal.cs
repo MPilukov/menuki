@@ -24,7 +24,8 @@ internal sealed class PtyTerminal : IDisposable
     private int _answeredQueries;
 
     /// <param name="size">Window rows and columns; null keeps the pty's default size.</param>
-    public PtyTerminal(string configPath, string settingsHome, (int Rows, int Cols)? size = null)
+    /// <param name="prependPath">A directory put in front of the child's PATH (the test process keeps its own).</param>
+    public PtyTerminal(string configPath, string settingsHome, (int Rows, int Cols)? size = null, string? prependPath = null)
     {
         var dll = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../Menuki/bin",
             AppContext.BaseDirectory.Contains("/Release/") ? "Release" : "Debug", "net8.0", "Menuki.dll"));
@@ -51,6 +52,8 @@ internal sealed class PtyTerminal : IDisposable
             info.ArgumentList.Add("/dev/null");
         }
         info.Environment["DOTNET_ROLL_FORWARD"] = "Major";
+        if (prependPath != null)
+            info.Environment["PATH"] = prependPath + Path.PathSeparator + Environment.GetEnvironmentVariable("PATH");
         info.Environment["MENUKI_HOME"] = Path.Combine(settingsHome, "settings");
         // Input history and other ~/.menuki files follow the user profile: keep them out of the real home.
         info.Environment["HOME"] = settingsHome;

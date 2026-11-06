@@ -90,4 +90,52 @@ public class MenuValidatorTests
         Assert.True(result.Ok); // warning only
         Assert.Contains(result.Issues, i => i.Level == "warning" && i.Where == "orphan");
     }
+
+    private static MenuConfig WithRequires(params RequirementDefinition[] req)
+    {
+        var c = One(new ActionDefinition { Type = ActionTypes.Exit });
+        c.Requires = req.ToList();
+        return c;
+    }
+
+    [Fact]
+    public void Requires_entry_without_command_is_an_error()
+    {
+        var r = MenuValidator.Validate(WithRequires(new RequirementDefinition { Install = "brew install x" }));
+        Assert.False(r.Ok);
+        Assert.Contains(r.Issues, i => i.Level == "error" && i.Where == "requires[0]");
+    }
+
+    [Fact]
+    public void Requires_with_unknown_os_is_an_error()
+    {
+        var r = MenuValidator.Validate(WithRequires(new RequirementDefinition { Command = "ls", Os = "beos" }));
+        Assert.False(r.Ok);
+        Assert.Contains(r.Issues, i => i.Level == "error" && i.Message.Contains("beos"));
+    }
+
+    [Fact]
+    public void Missing_required_command_is_a_warning_and_validation_still_passes()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), $"menuki-val-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var c = WithRequires(new RequirementDefinition { Command = "menuki-absent-tool", Install = "brew install x" });
+            var r = MenuValidator.Validate(c, dir, "linux");
+            Assert.True(r.Ok);
+            var w = Assert.Single(r.Issues, i => i.Level == "warning");
+            Assert.Contains("menuki-absent-tool", w.Message);
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void Requirement_for_another_os_gives_no_warning()
+    {
+        var c = WithRequires(new RequirementDefinition { Command = "menuki-absent-tool", Os = "macos" });
+        var r = MenuValidator.Validate(c, "", "linux");
+        Assert.True(r.Ok);
+        Assert.DoesNotContain(r.Issues, i => i.Level == "warning");
+    }
 }

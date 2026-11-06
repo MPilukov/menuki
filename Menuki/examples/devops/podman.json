@@ -1,6 +1,9 @@
 {
   "title": "Podman Manager",
   "start_menu": "main",
+  "requires": [
+    { "command": "podman", "install": "brew install podman" }
+  ],
   "menus": {
     "main": {
       "title": "Podman",

@@ -26,7 +26,7 @@ public static class ExampleCatalog
 
     /// <summary>Display order for category groupings; anything else sorts after, alphabetically.</summary>
     public static readonly IReadOnlyList<string> CategoryOrder =
-        new[] { "dev", "devops", "agents", "appearance", "demos" };
+        new[] { "dev", "devops", "mac", "agents", "appearance", "demos" };
 
     // plugin-demo depends on external plugin DLLs and repo-relative script paths, so it
     // cannot run standalone - keep it out of the offline catalog.

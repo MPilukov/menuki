@@ -1,6 +1,9 @@
 {
   "title": "DevOps Tools",
   "start_menu": "main",
+  "requires": [
+    { "command": "kubectl", "install": "brew install kubernetes-cli" }
+  ],
   "menus": {
     "main": {
       "title": "Main Menu",

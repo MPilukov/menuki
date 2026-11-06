@@ -1,6 +1,9 @@
 {
   "title": "GitHub CI/CD",
   "start_menu": "main",
+  "requires": [
+    { "command": "gh", "install": "brew install gh" }
+  ],
   "menus": {
     "main": {
       "title": "GitHub CI/CD",

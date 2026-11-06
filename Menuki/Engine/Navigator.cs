@@ -15,6 +15,16 @@ public static class Navigator
     /// <summary>Sentinel prefix returned by an open-config action: "__open_config__:&lt;path&gt;".</summary>
     public const string OpenConfigPrefix = "__open_config__:";
 
+    /// <summary>Sentinel returned by the "Install missing tools" item.</summary>
+    public const string InstallMissingSentinel = "__install_missing__";
+
+    private const string InstallMissingName = "Install missing tools";
+
+    private sealed class SentinelExecutor(string sentinel) : IActionExecutor
+    {
+        public string? Execute() => sentinel;
+    }
+
     public static void Run(
         MenuConfig config,
         ThemeManager theme,
@@ -60,9 +70,20 @@ public static class Navigator
                 .ToList();
 
             var isRoot = menuStack.Count == 0;
+
+            // Missing external tools (config "requires"): a notice above the items and an
+            // install item first. Only the root menu, and nothing at all when all is present.
+            string? missingNotice = null;
+            if (isRoot && Requirements.Missing(config) is { Count: > 0 } missing)
+            {
+                missingNotice = Requirements.Describe(missing);
+                menuItems.Insert(0, new MenuItem(InstallMissingName, new SentinelExecutor(InstallMissingSentinel),
+                    "Run the install commands for the tools this menu needs."));
+            }
+
             var startIndex = selectedByMenu.GetValueOrDefault(currentMenuId, 0);
             var engine = new MenuEngine(menuDef.Title, menuItems, theme, infoPanel.Count > 0 ? infoPanel : null, isRoot);
-            engine.WriteMenu(selectedItemIndex: startIndex);
+            engine.WriteMenu(selectedItemIndex: startIndex, pushTextToUser: missingNotice);
 
             var result = engine.RunMenu(startIndex);
 
@@ -96,6 +117,12 @@ public static class Navigator
                     }
                     break;
 
+                case InstallMissingSentinel:
+                    config = InstallMissing(config, configPath);
+                    selectedByMenu.Clear();
+                    currentMenuId = ResetAfterReload(config, menuStack, currentMenuId);
+                    break;
+
                 case "__validate__":
                     JsonEditFlow.Validate(configPath);
                     break;
@@ -121,6 +148,61 @@ public static class Navigator
                     break;
             }
         }
+    }
+
+    /// <summary>
+    /// Shows the install commands of the missing tools, asks y/N, runs them with live output
+    /// and reloads the config from disk (keeping the current one if it cannot be read).
+    /// </summary>
+    private static MenuConfig InstallMissing(MenuConfig config, string configPath)
+    {
+        var commands = Requirements.Missing(config)
+            .Where(r => !string.IsNullOrWhiteSpace(r.Install))
+            .Select(r => r.Install!.Trim())
+            .Distinct()
+            .ToList();
+
+        Console.Clear();
+        if (commands.Count == 0)
+        {
+            Console.WriteLine("None of the missing tools has an install command; install them by hand.");
+            Console.WriteLine("\nPress any key to continue...");
+            Console.ReadKey(intercept: true);
+            return config;
+        }
+
+        Console.WriteLine("About to run:");
+        foreach (var c in commands)
+            Console.WriteLine($"  > {c}");
+        Console.Write("\nRun these commands? [y/N] ");
+        var answer = Console.ReadKey(intercept: false).Key;
+        Console.WriteLine();
+        if (answer != ConsoleKey.Y)
+            return config;
+
+        Console.WriteLine();
+        foreach (var c in commands)
+        {
+            Console.WriteLine($"> {c}");
+            var code = ShellRunner.RunInteractive(c);
+            if (code != 0)
+                Console.WriteLine($"(exit code {code})");
+        }
+
+        Console.WriteLine("\nPress any key to continue...");
+        Console.ReadKey(intercept: true);
+
+        try
+        {
+            if (System.Text.Json.JsonSerializer.Deserialize<MenuConfig>(File.ReadAllText(configPath)) is { } reloaded &&
+                reloaded.Menus.ContainsKey(reloaded.StartMenu))
+                return reloaded;
+        }
+        catch
+        {
+            // Keep the config already in memory.
+        }
+        return config;
     }
 
     /// <summary>
