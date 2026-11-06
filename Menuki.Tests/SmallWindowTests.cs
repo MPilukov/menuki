@@ -131,6 +131,13 @@ public class TerminalTextTests
     }
 
     [Fact]
+    public void Wrap_breaks_at_a_space_inside_the_indent_width_of_an_unindented_line()
+    {
+        Assert.Equal(new[] { "hi", "    world" }, TerminalText.Wrap("hi world", 7, "    "));
+        Assert.Equal(new[] { "    abcdefgh", "    ijk" }, TerminalText.Wrap("    abcdefghijk", 12, "    "));
+    }
+
+    [Fact]
     public void JoinWrapped_keeps_each_hint_whole()
     {
         var hints = new[] { "Up/Down: Navigate", "Enter: Select", "E: Edit JSON", "Esc: Exit" };

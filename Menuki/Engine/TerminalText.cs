@@ -125,29 +125,43 @@ public static class TerminalText
 
         var current = new StringBuilder();
         var currentWidth = 0;
-        var lastSpace = -1; // index in `current` of the last space, to break there
+        // Index in `current` of the last space that follows some text: the line breaks there.
+        // Spaces of a leading indent are not break points (breaking there leaves a blank line).
+        var lastSpace = -1;
+        var seenText = false;
         foreach (var cluster in Clusters(text))
         {
             var w = ClusterWidth(cluster);
             if (currentWidth + w > maxWidth)
             {
-                string carry;
-                if (lastSpace > Width(indent))
+                var carry = "";
+                if (lastSpace >= 0)
                 {
                     carry = current.ToString(lastSpace + 1, current.Length - lastSpace - 1);
                     current.Length = lastSpace;
                 }
-                else
-                {
-                    carry = "";
-                }
                 lines.Add(current.ToString().TrimEnd());
-                current.Clear().Append(indent).Append(carry);
-                currentWidth = Width(current.ToString());
+                current.Clear().Append(indent);
+                currentWidth = Width(indent);
                 lastSpace = -1;
-                if (cluster == " ") continue;
+                seenText = false;
+                foreach (var c in Clusters(carry))
+                {
+                    if (c == " " && seenText) lastSpace = current.Length;
+                    else if (c != " ") seenText = true;
+                    current.Append(c);
+                    currentWidth += ClusterWidth(c);
+                }
+                if (cluster == " " && !seenText) continue;
             }
-            if (cluster == " ") lastSpace = current.Length;
+            if (cluster == " ")
+            {
+                if (seenText) lastSpace = current.Length;
+            }
+            else
+            {
+                seenText = true;
+            }
             current.Append(cluster);
             currentWidth += w;
         }
