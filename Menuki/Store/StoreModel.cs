@@ -120,6 +120,9 @@ public static class StoreLogic
             return result;
         foreach (var file in Directory.GetFiles(dir, "*.json").OrderBy(f => f, StringComparer.OrdinalIgnoreCase))
         {
+            // A link in the repo could point at any file on this machine: never read or install through one.
+            if (new FileInfo(file).LinkTarget != null)
+                continue;
             JsonNode? root;
             try { root = JsonNode.Parse(System.IO.File.ReadAllText(file)); }
             catch { continue; }
@@ -221,16 +224,61 @@ public static class StoreLogic
         ("password or key in a URL", new Regex(@"(?i)[?&](pwd|password|pass|token|access_token|api_?key|key|secret|sig)=[^&\s""]{8,}")),
     };
 
-    /// <summary>What looks like a secret in a config, one line per finding ("line 12: GitHub token").</summary>
+    private static readonly Regex SensitiveKey = new(@"(?i)^(password|passwd|pwd|secret|client_secret|token|access_token|api_?key|private_key)$");
+
+    /// <summary>
+    /// What looks like a secret in a config, one line per finding. The JSON is decoded first, so
+    /// an escaped character (a saved "&amp;" is written as \u0026) does not hide a value from the
+    /// patterns; text that does not parse is scanned line by line.
+    /// </summary>
     public static List<string> FindSecrets(string text)
     {
         var found = new List<string>();
-        var lines = text.Split('\n');
-        for (var i = 0; i < lines.Length; i++)
-            foreach (var (label, re) in SecretPatterns)
-                if (re.IsMatch(lines[i]))
-                    found.Add($"line {i + 1}: {label}");
-        return found;
+        JsonNode? root = null;
+        try { root = JsonNode.Parse(text); }
+        catch (JsonException) { }
+
+        if (root == null)
+        {
+            var lines = text.Split('\n');
+            for (var i = 0; i < lines.Length; i++)
+                foreach (var (label, re) in SecretPatterns)
+                    if (re.IsMatch(lines[i]))
+                        found.Add($"line {i + 1}: {label}");
+            return found;
+        }
+
+        void Walk(JsonNode? n, string path)
+        {
+            switch (n)
+            {
+                case JsonObject o:
+                    foreach (var kv in o)
+                    {
+                        var child = path + "." + kv.Key;
+                        if (SensitiveKey.IsMatch(kv.Key) && kv.Value?.GetValueKind() == JsonValueKind.String
+                            && kv.Value.GetValue<string>().Length >= 8)
+                            found.Add($"{child}: a {kv.Key} value");
+                        Walk(kv.Value, child);
+                    }
+                    break;
+                case JsonArray a:
+                    for (var i = 0; i < a.Count; i++)
+                        Walk(a[i], $"{path}[{i}]");
+                    break;
+                case JsonValue v when v.GetValueKind() == JsonValueKind.String:
+                    var value = v.GetValue<string>();
+                    foreach (var (label, re) in SecretPatterns)
+                        if (re.IsMatch(value) || re.IsMatch(JsonSerializer.Serialize(value)))
+                        {
+                            found.Add($"{path}: {label}");
+                            break;
+                        }
+                    break;
+            }
+        }
+        Walk(root, "$");
+        return found.Distinct().ToList();
     }
 
     private static readonly JsonSerializerOptions WriteOptions = new() { WriteIndented = true };
@@ -253,7 +301,7 @@ public static class StoreLogic
     public static void SaveState(string file, StoreState state)
     {
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(file)!);
-        var tmp = file + ".tmp";
+        var tmp = $"{file}.{Environment.ProcessId}.{Guid.NewGuid():N}.tmp";
         System.IO.File.WriteAllText(tmp, JsonSerializer.Serialize(state, WriteOptions) + "\n", new UTF8Encoding(false));
         System.IO.File.Move(tmp, file, overwrite: true);
     }

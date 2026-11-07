@@ -60,6 +60,7 @@ public class StoreCli
         try
         {
             var opts = Options.Parse(args.Skip(1).ToArray());
+            using var _ = AcquireLock();
             return args[0] switch
             {
                 "store" => StoreCommand(opts),
@@ -73,6 +74,29 @@ public class StoreCli
         {
             _err.WriteLine(e.Message);
             return 1;
+        }
+    }
+
+    /// <summary>One store command at a time per menuki home, so two runs never lose each other's state.</summary>
+    private FileStream AcquireLock()
+    {
+        Directory.CreateDirectory(_home);
+        var path = Path.Combine(_home, "store.lock");
+        var until = DateTime.UtcNow.AddSeconds(30);
+        while (true)
+        {
+            try
+            {
+                return new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+            }
+            catch (IOException) when (DateTime.UtcNow < until)
+            {
+                Thread.Sleep(200);
+            }
+            catch (IOException)
+            {
+                throw new InvalidOperationException("Another menuki store command is running (store.lock is busy). Try again when it is done.");
+            }
         }
     }
 
@@ -174,7 +198,7 @@ public class StoreCli
 
         List<StoreMenu> picked;
         if (o.Positional.Count > 0 || o.Has("--all"))
-            picked = o.Has("--all") ? available : o.Positional.Select(n => Find(available, n)).ToList();
+            picked = o.Has("--all") ? FirstPerName(available) : o.Positional.Select(n => Find(available, n)).ToList();
         else
         {
             if (!_interactive)
@@ -187,13 +211,13 @@ public class StoreCli
                 return 0;
             }
             picked = answer == "all"
-                ? available
+                ? FirstPerName(available)
                 : answer.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries)
                     .Select(t => int.TryParse(t, out var i) && i >= 1 && i <= available.Count ? available[i - 1] : Find(available, t))
                     .ToList();
         }
 
-        var all = StoreLogic.WithDependencies(picked, available);
+        var all = FirstPerName(StoreLogic.WithDependencies(picked, available));
         var extra = all.Where(m => !picked.Contains(m)).Select(m => m.Name).ToList();
         if (extra.Count > 0)
             _out.WriteLine($"Also installing what they open: {string.Join(", ", extra)}");
@@ -256,14 +280,25 @@ public class StoreCli
         }
     }
 
+    private string? _backupDir;
+
     private void Write(StoreMenu m, string target, bool backup)
     {
         Directory.CreateDirectory(_configsDir);
         if (backup && File.Exists(target))
         {
-            var dir = Path.Combine(_home, "backup", "store-" + DateTime.Now.ToString("yyyyMMdd-HHmmss"));
-            Directory.CreateDirectory(dir);
-            File.Copy(target, Path.Combine(dir, m.Name + ".json"), overwrite: true);
+            if (_backupDir == null)
+            {
+                var stamp = "store-" + DateTime.Now.ToString("yyyyMMdd-HHmmss");
+                var dir = Path.Combine(_home, "backup", stamp);
+                for (var i = 2; Directory.Exists(dir); i++)
+                    dir = Path.Combine(_home, "backup", $"{stamp}-{i}");
+                Directory.CreateDirectory(dir);
+                _backupDir = dir;
+            }
+            var copy = Path.Combine(_backupDir, m.Name + ".json");
+            if (!File.Exists(copy))   // the first copy in a run is the user's original; never replace it
+                File.Copy(target, copy);
         }
         var tmp = target + ".tmp";
         File.Copy(m.File, tmp, overwrite: true);
@@ -367,6 +402,19 @@ public class StoreCli
                     break;
             }
         }
+        // A newer version may open configs that are not here yet; without them its open-config fails.
+        var tracked = state.Installed.Where(kv => names.Contains(kv.Key))
+            .Select(kv => available.FirstOrDefault(x => x.Name == kv.Key && x.Store.Name == kv.Value.Store))
+            .OfType<StoreMenu>().ToList();
+        foreach (var dep in StoreLogic.WithDependencies(tracked, available).Where(d => !tracked.Contains(d)))
+            if (StoreLogic.Status(dep, _configsDir, state) == MenuStatus.NotInstalled)
+            {
+                Write(dep, Path.Combine(_configsDir, dep.Name + ".json"), backup: false);
+                Record(state, dep);
+                _out.WriteLine($"  {dep.Name}: installed (now opened by an updated config)");
+                updated++;
+            }
+
         StoreLogic.SaveState(StateFile, state);
         _out.WriteLine($"Updated {updated}, up to date {current}{(kept > 0 ? $", kept local edits {kept}" : "")}.");
         return 0;
@@ -438,26 +486,55 @@ public class StoreCli
         var repo = StoreDir(store);
         Refresh(new List<StoreEntry> { store }, strict: true);
         var dir = MenusDir(store);
-        Directory.CreateDirectory(dir);
-        foreach (var n in all)
-            File.Copy(Path.Combine(_configsDir, n + ".json"), Path.Combine(dir, n + ".json"), overwrite: true);
 
-        var rel = all.Select(n => Path.GetRelativePath(repo, Path.Combine(dir, n + ".json"))).ToArray();
-        GitOrThrow(repo, new[] { "add", "--" }.Concat(rel).ToArray());
-        var (changed, _, _) = Git(repo, "diff", "--cached", "--quiet");
-        if (changed == 0)
-            _out.WriteLine($"Store {store.Name} already has these versions.");
-        else
+        // Do not replace a version another machine published since this one last synced.
+        if (!o.Has("--force"))
         {
-            var message = o.Value("-m") ?? o.Value("--message") ?? $"Publish {string.Join(", ", all)} from {Environment.MachineName}";
-            GitOrThrow(repo, "commit", "--quiet", "-m", message);
-            var (code, _, err) = Git(repo, "push", "--quiet", "origin", "HEAD");
-            if (code != 0)
+            var current = StoreLogic.ReadStore(store, dir).ToDictionary(m => m.Name);
+            var newer = all.Where(n => current.TryGetValue(n, out var sm)
+                                       && sm.Hash != StoreLogic.Hash(Path.Combine(_configsDir, n + ".json"))
+                                       && !(state.Installed.TryGetValue(n, out var rec) && rec.Store == store.Name && rec.Hash == sm.Hash))
+                .ToList();
+            if (newer.Count > 0)
             {
-                Git(repo, "reset", "--quiet", "--hard", "HEAD~1");   // the clone is only a cache; local configs are untouched
-                throw new InvalidOperationException($"Push to {store.Url} failed: {err.Trim()}");
+                _err.WriteLine($"Not published: store {store.Name} has a version of {string.Join(", ", newer)} that this machine has not seen " +
+                               "(published from elsewhere). Compare first (menuki install <name> shows the diff with d), or add --force to replace it.");
+                return 1;
             }
-            _out.WriteLine($"Published to {store.Name}: {string.Join(", ", all)}");
+        }
+
+        try
+        {
+            Directory.CreateDirectory(dir);
+            foreach (var n in all)
+            {
+                var dest = Path.Combine(dir, n + ".json");
+                // A link in the repo must not make the copy write through it to another file.
+                if (File.Exists(dest) || new FileInfo(dest).LinkTarget != null)
+                    File.Delete(dest);
+                File.Copy(Path.Combine(_configsDir, n + ".json"), dest);
+            }
+
+            var rel = all.Select(n => Path.GetRelativePath(repo, Path.Combine(dir, n + ".json"))).ToArray();
+            GitOrThrow(repo, new[] { "add", "--" }.Concat(rel).ToArray());
+            var (changed, _, _) = Git(repo, "diff", "--cached", "--quiet");
+            if (changed == 0)
+                _out.WriteLine($"Store {store.Name} already has these versions.");
+            else
+            {
+                var message = o.Value("-m") ?? o.Value("--message") ?? $"Publish {string.Join(", ", all)} from {Environment.MachineName}";
+                GitOrThrow(repo, "commit", "--quiet", "-m", message);
+                var (code, _, err) = Git(repo, "push", "--quiet", "origin", "HEAD");
+                if (code != 0)
+                    throw new InvalidOperationException($"Push to {store.Url} failed: {err.Trim()}");
+                _out.WriteLine($"Published to {store.Name}: {string.Join(", ", all)}");
+            }
+        }
+        catch
+        {
+            // The clone is only a cache: drop it so nothing half-done is sent later; the next command clones it again.
+            DeleteClone(store);
+            throw;
         }
 
         foreach (var m in StoreLogic.ReadStore(store, dir).Where(m => all.Contains(m.Name)))
@@ -493,9 +570,14 @@ public class StoreCli
                 }
                 continue;
             }
-            if (Git(dir, "rev-parse", "--verify", "--quiet", "HEAD").Code != 0)
-                continue;   // an empty repository: nothing to pull yet, the first publish creates the branch
-            var (code, _, err) = Git(dir, "pull", "--quiet", "--ff-only");
+            var (code, err) = Sync(dir);
+            if (code == 1)
+            {
+                // Cloned while the repository was empty, or holds a commit that never got pushed: clone it again.
+                DeleteClone(s);
+                var (c, _, e) = Git(null, "clone", "--quiet", s.Url, dir);
+                (code, err) = c == 0 ? (0, "") : (2, e);
+            }
             if (code != 0)
             {
                 if (strict) throw new InvalidOperationException($"Could not update store {s.Name}: {err.Trim()}");
@@ -503,6 +585,39 @@ public class StoreCli
             }
         }
     }
+
+    /// <summary>
+    /// Fetch and make the clone exactly the remote branch: the clone is a cache, so a local
+    /// commit or file left by a failed run must not survive. 1 = nothing to follow yet.
+    /// </summary>
+    private static (int Code, string Err) Sync(string dir)
+    {
+        var fetch = Git(dir, "fetch", "--quiet", "--prune", "origin");
+        if (fetch.Code != 0)
+            return (2, fetch.Err);
+        var remoteHasBranch = Git(dir, "for-each-ref", "--count=1", "refs/remotes/origin").Out.Trim().Length > 0;
+        var hasLocalCommit = Git(dir, "rev-parse", "--verify", "--quiet", "HEAD").Code == 0;
+        if (!remoteHasBranch)
+            return hasLocalCommit ? (1, "") : (0, "");   // empty remote: drop an unpushed commit, else nothing to do
+        var upstream = Git(dir, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}");
+        if (upstream.Code != 0)
+            return (1, "");   // cloned while the repository was empty: no branch to follow yet
+        var reset = Git(dir, "reset", "--quiet", "--hard", upstream.Out.Trim());
+        if (reset.Code != 0)
+            return (2, reset.Err);
+        Git(dir, "clean", "--quiet", "-fdx");
+        return (0, "");
+    }
+
+    private void DeleteClone(StoreEntry s)
+    {
+        var dir = StoreDir(s);
+        if (Directory.Exists(dir))
+            Directory.Delete(dir, recursive: true);
+    }
+
+    private static List<StoreMenu> FirstPerName(IEnumerable<StoreMenu> menus) =>
+        menus.GroupBy(m => m.Name).Select(g => g.First()).ToList();
 
     private static StoreMenu Find(List<StoreMenu> available, string query)
     {
@@ -556,6 +671,7 @@ public class StoreCli
     private sealed class Options
     {
         private static readonly HashSet<string> WithValue = new() { "--store", "--name", "--path", "-m", "--message" };
+        private static readonly HashSet<string> Switches = new() { "--force", "--all" };
         public List<string> Positional { get; } = new();
         private readonly Dictionary<string, string?> _flags = new();
 
@@ -567,14 +683,24 @@ public class StoreCli
                 var a = args[i];
                 if (a.StartsWith('-') && a.Length > 1)
                 {
-                    if (WithValue.Contains(a))
+                    var eq = a.IndexOf('=');
+                    if (eq > 0)
+                    {
+                        var key = a[..eq];
+                        if (!WithValue.Contains(key))
+                            throw new ArgumentException($"Unknown option {key}.");
+                        o._flags[key] = a[(eq + 1)..];
+                    }
+                    else if (WithValue.Contains(a))
                     {
                         if (i + 1 >= args.Length)
                             throw new ArgumentException($"{a} needs a value.");
                         o._flags[a] = args[++i];
                     }
-                    else
+                    else if (Switches.Contains(a))
                         o._flags[a] = null;
+                    else
+                        throw new ArgumentException($"Unknown option {a}.");
                 }
                 else
                     o.Positional.Add(a);

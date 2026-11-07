@@ -55,6 +55,13 @@ public class StoreLogicTests
     public void Finds_secrets(string line) => Assert.NotEmpty(StoreLogic.FindSecrets("{\n" + line + "\n}"));
 
     [Fact]
+    public void Finds_a_secret_hidden_by_json_escaping_or_a_line_break()
+    {
+        Assert.NotEmpty(StoreLogic.FindSecrets("{ \"url\": \"https://host/?id=1\\u0026pwd=secret123456\" }"));
+        Assert.NotEmpty(StoreLogic.FindSecrets("{ \"password\":\n  \"hunter2hunter2\" }"));
+    }
+
+    [Fact]
     public void Plain_config_has_no_secrets()
     {
         Assert.Empty(StoreLogic.FindSecrets("""
@@ -219,6 +226,146 @@ public class StoreFlowTests : IDisposable
         Assert.Equal(1, a.Run("publish", "ops"));
         Assert.Contains("GitHub token", a.Err.ToString());
         Assert.NotEqual(0, StoreCli.Git(null, "--git-dir", _remote, "rev-parse", "--verify", "--quiet", "HEAD").Code);   // nothing reached the repo
+    }
+
+    private string NewRemote(string name)
+    {
+        var path = Path.Combine(_root, name + ".git");
+        Assert.Equal(0, StoreCli.Git(null, "init", "--quiet", "--bare", "--initial-branch=main", path).Code);
+        return path;
+    }
+
+    [Fact]
+    public void A_store_link_is_never_read_and_publish_does_not_write_through_it()
+    {
+        var a = NewMachine("a");
+        a.Save("my", Menu("my"));
+        a.Save("private", Menu("private"));
+        a.Run("store", "add", _remote, "--name", "s");
+        a.Run("publish", "my");
+
+        // Someone with push access replaces my.json in the repo with a link to a local file.
+        var evil = Path.Combine(_root, "evil");
+        StoreCli.Git(null, "clone", "--quiet", _remote, evil);
+        File.Delete(Path.Combine(evil, "my.json"));
+        File.CreateSymbolicLink(Path.Combine(evil, "my.json"), Path.Combine(a.Configs, "private.json"));
+        StoreCli.Git(evil, "add", "-A");
+        StoreCli.Git(evil, "commit", "--quiet", "-m", "link");
+        StoreCli.Git(evil, "push", "--quiet", "origin", "HEAD");
+
+        var b = NewMachine("b");
+        b.Run("store", "add", _remote, "--name", "s");
+        b.Run("install", "my");
+        Assert.False(File.Exists(Path.Combine(b.Configs, "my.json")));   // not offered: the link is skipped
+
+        a.Save("my", Menu("my v2"));
+        Assert.Equal(0, a.Run("publish", "my", "--force"));
+        Assert.Contains("\"private\"", a.Read("private"));          // untouched
+    }
+
+    [Fact]
+    public void Replacing_twice_keeps_the_original_in_a_backup()
+    {
+        var r2 = NewRemote("second");
+        var a = NewMachine("a");
+        a.Save("my", Menu("from one"));
+        a.Run("store", "add", _remote, "--name", "one");
+        a.Run("publish", "my", "--store", "one");
+        a.Save("my", Menu("from two"));
+        a.Run("store", "add", r2, "--name", "two");
+        a.Run("publish", "my", "--store=two");
+
+        var b = NewMachine("b");
+        b.Save("my", Menu("original of b"));
+        b.Run("store", "add", _remote, "--name", "one");
+        b.Run("store", "add", r2, "--name", "two");
+        Assert.Equal(0, b.Run("install", "one/my", "--force"));
+        Assert.Equal(0, b.Run("install", "two/my", "--force"));
+        var backups = Directory.GetFiles(Path.Combine(b.Home, "backup"), "my.json", SearchOption.AllDirectories)
+            .Select(File.ReadAllText).ToList();
+        Assert.Contains(backups, t => t.Contains("original of b"));
+    }
+
+    [Fact]
+    public void A_failed_first_push_does_not_leave_the_store_stuck()
+    {
+        var hook = Path.Combine(_remote, "hooks", "pre-receive");
+        File.WriteAllText(hook, "#!/bin/sh\nexit 1\n");
+        File.SetUnixFileMode(hook, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+
+        var a = NewMachine("a");
+        a.Save("alpha", Menu("alpha"));
+        a.Save("beta", Menu("beta"));
+        a.Run("store", "add", _remote, "--name", "s");
+        Assert.Equal(1, a.Run("publish", "alpha"));
+        Assert.Contains("failed", a.Err.ToString());
+
+        File.Delete(hook);
+        Assert.Equal(0, a.Run("publish", "beta"));
+        var files = StoreCli.Git(null, "--git-dir", _remote, "ls-tree", "--name-only", "HEAD").Out;
+        Assert.Contains("beta.json", files);
+        Assert.DoesNotContain("alpha.json", files);                 // the failed attempt was not sent later
+    }
+
+    [Fact]
+    public void A_store_added_while_empty_sees_later_publishes()
+    {
+        var b = NewMachine("b");
+        Assert.Equal(0, b.Run("store", "add", _remote, "--name", "s"));
+        var a = NewMachine("a");
+        a.Save("alpha", Menu("alpha"));
+        a.Run("store", "add", _remote, "--name", "s");
+        a.Run("publish", "alpha");
+
+        Assert.Equal(0, b.Run("install", "alpha"));
+        Assert.True(File.Exists(Path.Combine(b.Configs, "alpha.json")));
+        b.Save("beta", Menu("beta"));
+        Assert.Equal(0, b.Run("publish", "beta"));
+    }
+
+    [Fact]
+    public void Update_installs_a_config_a_new_version_opens()
+    {
+        var a = NewMachine("a");
+        a.Save("my", Menu("my"));
+        a.Run("store", "add", _remote, "--name", "s");
+        a.Run("publish", "my");
+        var b = NewMachine("b");
+        b.Run("store", "add", _remote, "--name", "s");
+        b.Run("install", "my");
+
+        a.Save("agents", Menu("agents"));
+        a.Save("my", Menu("my v2", opens: "agents"));
+        a.Run("publish", "my");
+        Assert.Equal(0, b.Run("update"));
+        Assert.True(File.Exists(Path.Combine(b.Configs, "agents.json")));
+    }
+
+    [Fact]
+    public void Publish_does_not_replace_a_version_published_elsewhere()
+    {
+        var a = NewMachine("a");
+        a.Save("my", Menu("my"));
+        a.Run("store", "add", _remote, "--name", "s");
+        a.Run("publish", "my");
+        var b = NewMachine("b");
+        b.Run("store", "add", _remote, "--name", "s");
+        b.Run("install", "my");
+
+        b.Save("my", Menu("my from b"));
+        Assert.Equal(0, b.Run("publish", "my"));
+        a.Save("my", Menu("my from a, not synced"));
+        Assert.Equal(1, a.Run("publish", "my"));
+        Assert.Contains("has not seen", a.Err.ToString());
+        Assert.Equal(0, a.Run("publish", "my", "--force"));
+    }
+
+    [Fact]
+    public void Unknown_options_are_errors()
+    {
+        var a = NewMachine("a");
+        Assert.Equal(1, a.Run("install", "--stor", "x"));
+        Assert.Contains("Unknown option", a.Err.ToString());
     }
 
     [Fact]
