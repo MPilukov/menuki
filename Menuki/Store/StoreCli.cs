@@ -509,7 +509,7 @@ public class StoreCli
         var content = all.ToDictionary(n => n, n => File.ReadAllBytes(Path.Combine(_configsDir, n + ".json")));
         if (!o.Has("--allow-secrets"))
         {
-            var findings = all.SelectMany(n => StoreLogic.FindSecrets(System.Text.Encoding.UTF8.GetString(content[n]))
+            var findings = all.SelectMany(n => StoreLogic.FindSecrets(StoreLogic.Decode(content[n]))
                 .Select(f => $"  {n}.json {f}")).ToList();
             if (findings.Count > 0)
             {
@@ -602,7 +602,8 @@ public class StoreCli
                 }
                 continue;
             }
-            var origin = Git(dir, "remote", "get-url", "origin");
+            // The configured URL, not `remote get-url`: that one applies insteadOf rewrites and would never match.
+            var origin = Git(dir, "config", "--get", "remote.origin.url");
             var (code, err) = origin.Code == 0 && origin.Out.Trim() == s.Url ? Sync(dir) : (1, "");
             if (code == 1)
             {

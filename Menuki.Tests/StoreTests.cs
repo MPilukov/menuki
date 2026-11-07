@@ -61,6 +61,18 @@ public class StoreLogicTests
         Assert.NotEmpty(StoreLogic.FindSecrets("{ \"password\":\n  \"hunter2hunter2\" }"));
     }
 
+    [Theory]
+    [InlineData("utf-16")]
+    [InlineData("utf-8-bom")]
+    public void Finds_a_secret_in_a_utf16_or_bom_file(string encoding)
+    {
+        var json = "{ \"title\": \"t\", \"url\": \"https://h/?a=1\\u0026token=ghp_abcdefghijklmnopqrstuvwxyz0123456789\" }";
+        var bytes = encoding == "utf-16"
+            ? System.Text.Encoding.Unicode.GetPreamble().Concat(System.Text.Encoding.Unicode.GetBytes(json)).ToArray()
+            : new System.Text.UTF8Encoding(true).GetPreamble().Concat(System.Text.Encoding.UTF8.GetBytes(json)).ToArray();
+        Assert.NotEmpty(StoreLogic.FindSecrets(StoreLogic.Decode(bytes)));
+    }
+
     [Fact]
     public void Plain_config_has_no_secrets()
     {

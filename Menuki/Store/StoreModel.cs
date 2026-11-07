@@ -112,6 +112,13 @@ public static class StoreLogic
 
     public static string Hash(string file) => Convert.ToHexString(SHA256.HashData(System.IO.File.ReadAllBytes(file))).ToLowerInvariant();
 
+    /// <summary>Text of a file's bytes as menuki reads it: UTF-8 unless a byte-order mark says UTF-16/32.</summary>
+    public static string Decode(byte[] bytes)
+    {
+        using var reader = new StreamReader(new MemoryStream(bytes), new UTF8Encoding(false), detectEncodingFromByteOrderMarks: true);
+        return reader.ReadToEnd();
+    }
+
     public static string Hash(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
 
     /// <summary>The menu configs in a store folder: every top-level *.json with a "menus" object.</summary>
