@@ -76,7 +76,7 @@ public static class ManPage
         Show usage help and exit.
         .SH KEYS
         In the interactive menu: arrow keys to move, Enter to select, Esc to go back,
-        / to search by name, ? for item help, T to cycle color themes, E / Q / V / R to edit
+        / to search by name (also in the other RU/EN keyboard layout), ? for item help, T to cycle color themes, E / Q / V / R to edit
         the JSON, quick-edit, validate or reload the config.
         .SH FILES
         .TP

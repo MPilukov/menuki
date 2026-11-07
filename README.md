@@ -219,7 +219,7 @@ The tour is itself an ordinary config plus a few private `tour:*` actions - noth
 | ? | Show the selected item's description / help |
 | T | Toggle theme (dark / light / custom) |
 | E / Q / V / R | Edit JSON / Quick Edit / Validate / Reload config |
-| / | Search: filter items by name (then every key, letters included, goes to the query; Esc closes it) |
+| / | Search: filter items by name (then every key, letters included, goes to the query; Esc closes it). A query typed in the wrong layout also matches: `кузщ` finds `repo`, `ghbdtn` finds `привет` |
 
 ## Config Format
 
