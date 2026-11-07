@@ -42,7 +42,32 @@ public class StoreCli
 
     private string StateFile => Path.Combine(_home, "store.json");
     private string StoreDir(StoreEntry s) => Path.Combine(_home, "stores", s.Name);
-    private string MenusDir(StoreEntry s) => s.Path.Length > 0 ? Path.Combine(StoreDir(s), s.Path) : StoreDir(s);
+    /// <summary>
+    /// The store's config folder. Every step from the clone down to it must be a real folder:
+    /// a link (say <c>sub -&gt; ../../configs</c>) would make the store the user's own configs.
+    /// </summary>
+    private string MenusDir(StoreEntry s)
+    {
+        var root = Path.GetFullPath(StoreDir(s));
+        if (s.Path.Length == 0)
+            return root;
+        var dir = Path.GetFullPath(Path.Combine(root, s.Path));
+        if (!dir.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+            throw new InvalidOperationException($"Store {s.Name}: folder '{s.Path}' is outside the repository.");
+        for (var d = dir; d.Length > root.Length; d = Path.GetDirectoryName(d)!)
+            if (Directory.Exists(d) && new DirectoryInfo(d).LinkTarget != null)
+                throw new InvalidOperationException($"Store {s.Name}: '{Path.GetRelativePath(root, d)}' in the repository is a link, not a folder; refusing to use it.");
+        return dir;
+    }
+
+    /// <summary>A config name is a file name in the configs folder: no paths, no "..".</summary>
+    private static string CheckName(string name)
+    {
+        var n = StripJson(name.Trim());
+        if (!System.Text.RegularExpressions.Regex.IsMatch(n, @"^[A-Za-z0-9._-]+$") || n.Trim('.').Length == 0)
+            throw new ArgumentException($"'{name}' is not a config name (a name like 'my', without a folder).");
+        return n;
+    }
 
     public static int Run(string[] args)
     {
@@ -146,7 +171,7 @@ public class StoreCli
     {
         var (urls, sub, defaultName) = StoreLogic.ParseSource(source, pathOverride);
         var entry = new StoreEntry { Name = StoreLogic.SafeName(name ?? defaultName), Source = source, Path = sub };
-        if (state.Stores.Any(s => s.Name == entry.Name))
+        if (state.Stores.Any(s => string.Equals(s.Name, entry.Name, StringComparison.OrdinalIgnoreCase)))
             throw new ArgumentException($"A store named '{entry.Name}' already exists. Pick another with --name.");
 
         var dir = StoreDir(entry);
@@ -168,10 +193,15 @@ public class StoreCli
         }
         if (entry.Url.Length == 0)
             throw new InvalidOperationException($"Could not clone {source}: {lastError}\nCheck that git on this machine can reach it (gh auth login && gh auth setup-git, or an SSH key).");
-        if (sub.Length > 0 && !Directory.Exists(MenusDir(entry)))
+        try
+        {
+            if (sub.Length > 0 && !Directory.Exists(MenusDir(entry)))
+                throw new ArgumentException($"The repository has no folder '{sub}'.");
+        }
+        catch
         {
             Directory.Delete(dir, recursive: true);
-            throw new ArgumentException($"The repository has no folder '{sub}'.");
+            throw;
         }
 
         state.Stores.Add(entry);
@@ -198,7 +228,7 @@ public class StoreCli
 
         List<StoreMenu> picked;
         if (o.Positional.Count > 0 || o.Has("--all"))
-            picked = o.Has("--all") ? FirstPerName(available) : o.Positional.Select(n => Find(available, n)).ToList();
+            picked = o.Has("--all") ? FirstPerName(available) : o.Positional.Select(n => Find(available, n.Contains('/') ? n : CheckName(n))).ToList();
         else
         {
             if (!_interactive)
@@ -350,7 +380,7 @@ public class StoreCli
         var stores = PickStores(state, o.Value("--store"));
         Refresh(stores);
         var available = stores.SelectMany(s => StoreLogic.ReadStore(s, MenusDir(s))).ToList();
-        var names = o.Positional.Count > 0 ? o.Positional : state.Installed.Keys.OrderBy(k => k).ToList();
+        var names = o.Positional.Count > 0 ? o.Positional.Select(CheckName).ToList() : state.Installed.Keys.OrderBy(k => k).ToList();
         if (names.Count == 0)
         {
             _out.WriteLine("Nothing installed from a store yet. See: menuki install");
@@ -425,7 +455,7 @@ public class StoreCli
     private int Publish(Options o)
     {
         var state = StoreLogic.LoadState(StateFile);
-        var names = o.Has("--all") ? ConfigResolver.ListNames(_configsDir) : o.Positional.ToList();
+        var names = (o.Has("--all") ? ConfigResolver.ListNames(_configsDir) : o.Positional).Select(CheckName).Distinct().ToList();
         if (names.Count == 0)
             throw new ArgumentException("Usage: menuki publish <name...> [--store S] [-m message] (or --all)");
 
@@ -471,28 +501,30 @@ public class StoreCli
         if (all.Count > names.Count)
             _out.WriteLine($"Also publishing what they open: {string.Join(", ", all.Except(names))}");
 
-        if (!o.Has("--force"))
+        var repo = StoreDir(store);
+        Refresh(new List<StoreEntry> { store }, strict: true);
+        var dir = MenusDir(store);
+
+        // Read each config once: what is scanned is exactly what is pushed, even if it is saved again meanwhile.
+        var content = all.ToDictionary(n => n, n => File.ReadAllBytes(Path.Combine(_configsDir, n + ".json")));
+        if (!o.Has("--allow-secrets"))
         {
-            var findings = all.SelectMany(n => StoreLogic.FindSecrets(File.ReadAllText(Path.Combine(_configsDir, n + ".json")))
+            var findings = all.SelectMany(n => StoreLogic.FindSecrets(System.Text.Encoding.UTF8.GetString(content[n]))
                 .Select(f => $"  {n}.json {f}")).ToList();
             if (findings.Count > 0)
             {
                 _err.WriteLine("Not published: these look like secrets.\n" + string.Join("\n", findings) +
-                               "\nMove them out of the config (an environment variable, a keychain lookup) or add --force if they are not secrets.");
+                               "\nMove them out of the config (an environment variable, a keychain lookup), or add --allow-secrets if they are not secrets or the repository is private and you accept that.");
                 return 1;
             }
         }
-
-        var repo = StoreDir(store);
-        Refresh(new List<StoreEntry> { store }, strict: true);
-        var dir = MenusDir(store);
 
         // Do not replace a version another machine published since this one last synced.
         if (!o.Has("--force"))
         {
             var current = StoreLogic.ReadStore(store, dir).ToDictionary(m => m.Name);
             var newer = all.Where(n => current.TryGetValue(n, out var sm)
-                                       && sm.Hash != StoreLogic.Hash(Path.Combine(_configsDir, n + ".json"))
+                                       && sm.Hash != StoreLogic.Hash(content[n])
                                        && !(state.Installed.TryGetValue(n, out var rec) && rec.Store == store.Name && rec.Hash == sm.Hash))
                 .ToList();
             if (newer.Count > 0)
@@ -509,10 +541,10 @@ public class StoreCli
             foreach (var n in all)
             {
                 var dest = Path.Combine(dir, n + ".json");
-                // A link in the repo must not make the copy write through it to another file.
-                if (File.Exists(dest) || new FileInfo(dest).LinkTarget != null)
+                // A link in the repo must not make the write go through it to another file.
+                if (new FileInfo(dest).LinkTarget != null)
                     File.Delete(dest);
-                File.Copy(Path.Combine(_configsDir, n + ".json"), dest);
+                File.WriteAllBytes(dest, content[n]);
             }
 
             var rel = all.Select(n => Path.GetRelativePath(repo, Path.Combine(dir, n + ".json"))).ToArray();
@@ -570,10 +602,12 @@ public class StoreCli
                 }
                 continue;
             }
-            var (code, err) = Sync(dir);
+            var origin = Git(dir, "remote", "get-url", "origin");
+            var (code, err) = origin.Code == 0 && origin.Out.Trim() == s.Url ? Sync(dir) : (1, "");
             if (code == 1)
             {
-                // Cloned while the repository was empty, or holds a commit that never got pushed: clone it again.
+                // Another repo's clone in this folder, one made while the repo was empty, or one with
+                // leftovers of an interrupted publish: clone it again.
                 DeleteClone(s);
                 var (c, _, e) = Git(null, "clone", "--quiet", s.Url, dir);
                 (code, err) = c == 0 ? (0, "") : (2, e);
@@ -598,7 +632,9 @@ public class StoreCli
         var remoteHasBranch = Git(dir, "for-each-ref", "--count=1", "refs/remotes/origin").Out.Trim().Length > 0;
         var hasLocalCommit = Git(dir, "rev-parse", "--verify", "--quiet", "HEAD").Code == 0;
         if (!remoteHasBranch)
-            return hasLocalCommit ? (1, "") : (0, "");   // empty remote: drop an unpushed commit, else nothing to do
+            return hasLocalCommit || Git(dir, "status", "--porcelain").Out.Trim().Length > 0
+                ? (1, "")   // empty remote: drop an unpushed commit or files left staged by an interrupted run
+                : (0, "");
         var upstream = Git(dir, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}");
         if (upstream.Code != 0)
             return (1, "");   // cloned while the repository was empty: no branch to follow yet
@@ -671,7 +707,7 @@ public class StoreCli
     private sealed class Options
     {
         private static readonly HashSet<string> WithValue = new() { "--store", "--name", "--path", "-m", "--message" };
-        private static readonly HashSet<string> Switches = new() { "--force", "--all" };
+        private static readonly HashSet<string> Switches = new() { "--force", "--all", "--allow-secrets" };
         public List<string> Positional { get; } = new();
         private readonly Dictionary<string, string?> _flags = new();
 

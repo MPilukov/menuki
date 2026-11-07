@@ -178,7 +178,9 @@ menuki store list | store remove <name>
   replaces it, and the old file goes to `~/.menuki/backup/`. `install` asks before
   replacing a different local copy (`d` shows the diff).
 - `publish` refuses configs that look like they hold secrets (tokens, API keys, passwords,
-  credentials in URLs); move them out or pass `--force` if they are not secrets.
+  credentials or keys in URLs); move them out, or pass `--allow-secrets` if they are not
+  secrets or the repository is private and you accept that. `--force` only replaces a store
+  version this machine has not seen; it never skips the secret check.
 - Missing tools from a config's `requires` are listed right after it is installed.
 - State: `~/.menuki/store.json` (stores and what was installed from where), clones in
   `~/.menuki/stores/`.

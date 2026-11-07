@@ -112,6 +112,8 @@ public static class StoreLogic
 
     public static string Hash(string file) => Convert.ToHexString(SHA256.HashData(System.IO.File.ReadAllBytes(file))).ToLowerInvariant();
 
+    public static string Hash(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+
     /// <summary>The menu configs in a store folder: every top-level *.json with a "menus" object.</summary>
     public static List<StoreMenu> ReadStore(StoreEntry store, string dir)
     {

@@ -361,6 +361,53 @@ public class StoreFlowTests : IDisposable
     }
 
     [Fact]
+    public void A_path_as_the_name_is_refused_and_deletes_nothing()
+    {
+        var a = NewMachine("a");
+        a.Save("my", Menu("my"));
+        a.Run("store", "add", _remote, "--name", "s");
+        Assert.Equal(1, a.Run("publish", Path.Combine(a.Configs, "my")));
+        Assert.Equal(1, a.Run("publish", "./my"));
+        Assert.Contains("not a config name", a.Err.ToString());
+        Assert.True(File.Exists(Path.Combine(a.Configs, "my.json")));
+    }
+
+    [Fact]
+    public void A_store_folder_that_is_a_link_is_refused()
+    {
+        var a = NewMachine("a");
+        a.Save("foo", Menu("foo"));
+        var evil = Path.Combine(_root, "evil");
+        StoreCli.Git(null, "clone", "--quiet", _remote, evil);
+        Directory.CreateSymbolicLink(Path.Combine(evil, "sub"), "../../configs");   // from <home>/stores/s: the user's configs
+        StoreCli.Git(evil, "add", "-A");
+        StoreCli.Git(evil, "commit", "--quiet", "-m", "link");
+        StoreCli.Git(evil, "push", "--quiet", "origin", "HEAD");
+
+        Assert.Equal(1, a.Run("store", "add", _remote, "--name", "s", "--path", "sub"));
+        Assert.Contains("is a link", a.Err.ToString());
+        Assert.True(File.Exists(Path.Combine(a.Configs, "foo.json")));
+    }
+
+    [Fact]
+    public void Store_names_differing_only_by_case_are_one_name()
+    {
+        var a = NewMachine("a");
+        Assert.Equal(0, a.Run("store", "add", _remote, "--name", "work"));
+        Assert.Equal(1, a.Run("store", "add", NewRemote("other"), "--name", "Work"));
+    }
+
+    [Fact]
+    public void Force_does_not_skip_the_secret_check_but_allow_secrets_does()
+    {
+        var a = NewMachine("a");
+        a.Save("ops", """{ "title": "ops", "menus": { "main": { "items": [ { "name": "x", "action": { "type": "open-url", "url": "https://zoom.us/j/1?pwd=abcdefghijkl" } } ] } } }""");
+        a.Run("store", "add", _remote, "--name", "s");
+        Assert.Equal(1, a.Run("publish", "ops", "--force"));
+        Assert.Equal(0, a.Run("publish", "ops", "--allow-secrets"));
+    }
+
+    [Fact]
     public void Unknown_options_are_errors()
     {
         var a = NewMachine("a");
