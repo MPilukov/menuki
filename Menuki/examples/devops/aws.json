@@ -1,6 +1,9 @@
 {
   "title": "AWS Manager",
   "start_menu": "main",
+  "requires": [
+    { "command": "aws", "install": "brew install awscli" }
+  ],
   "menus": {
     "main": {
       "title": "AWS",

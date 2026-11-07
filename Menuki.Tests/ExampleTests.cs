@@ -25,6 +25,7 @@ public class ExampleTests
         var byName = ExampleCatalog.List().ToDictionary(e => e.Name, e => e.Category);
         Assert.Equal("dev", byName["git"]);
         Assert.Equal("devops", byName["docker"]);
+        Assert.Equal("mac", byName["iterm-layout"]);
         Assert.Equal("agents", byName["agent-mode"]);
         Assert.Equal("appearance", byName["colors-demo"]);
         Assert.Equal("demos", byName["typed-inputs-demo"]);

@@ -24,7 +24,7 @@ Build interactive terminal menus and runbooks from a single JSON file - the same
 - **Agent / headless mode** - `list` / `exec` subcommands drive menus non-interactively (JSON in, JSON out)
 - **MCP server** - let an AI agent author, validate and save nested menu configs
 - **Navigation stack** - submenus push/pop automatically, X goes back
-- **Pagination** - long menus paginated with Left/Right arrows
+- **Fits any window** - a menu taller than the terminal scrolls with the selection (position shown next to the title), and redraws when the window is resized
 - **Info panel** - static values or dynamic output from shell commands
 - **Cross-platform** - Windows, macOS, Linux
 
@@ -213,12 +213,13 @@ The tour is itself an ordinary config plus a few private `tour:*` actions - noth
 |-----|--------|
 | Up/Down | Move selection |
 | Enter | Execute action |
-| Left/Right | Pagination (long menus) |
-| X / Esc | Back to previous menu |
+| Left/Right, PageUp/PageDown | Jump a screen (long menus) |
+| Home/End | First / last item |
+| Esc | Back to previous menu (closes the search first, if open) |
 | ? | Show the selected item's description / help |
 | T | Toggle theme (dark / light / custom) |
 | E / Q / V / R | Edit JSON / Quick Edit / Validate / Reload config |
-| type to search | Filter items by name |
+| / | Search: filter items by name (then every key, letters included, goes to the query; Esc closes it) |
 
 ## Config Format
 
@@ -244,7 +245,18 @@ The tour is itself an ordinary config plus a few private `tour:*` actions - noth
 | `start_menu` | string | ID of the first menu to display |
 | `theme` | string? | Default theme: `"dark"` (default), `"light"`, or `"custom"` |
 | `colors` | object? | Custom color scheme (used when theme is `"custom"` or as the third T-toggle option) |
+| `requires` | array? | External commands the config needs on PATH (see below) |
 | `menus` | object | Flat dictionary of menu definitions keyed by ID |
+
+#### `requires`
+
+```json
+"requires": [
+  { "command": "iterm-layout", "install": "brew install mpilukov/tap/iterm-layout", "os": "macos" }
+]
+```
+
+Each entry has a `command` (required, looked up on PATH), an optional `install` shell command, and an optional `os` (`macos`, `linux` or `windows`; when set, the entry is only checked on that OS). When the root menu opens and a command is missing, a line `Missing: <command> (install: <install>)` appears above the items and an `Install missing tools` item comes first: it shows the install commands, asks `y/N`, runs them and reloads the config, so the line and the item disappear once the tools are installed. With everything present the menu looks as before. `menuki validate` reports a malformed entry (no `command`, unknown `os`) as an error and a missing command as a warning (`ok` stays `true`). `menuki exec` and headless mode do not check `requires`.
 
 ### Menu
 

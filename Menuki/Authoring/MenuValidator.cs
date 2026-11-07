@@ -16,7 +16,10 @@ public static class MenuValidator
 {
     private static readonly Regex TemplateVar = new(@"\{(\w+)\}", RegexOptions.Compiled);
 
-    public static ValidationResult Validate(MenuConfig config)
+    public static ValidationResult Validate(MenuConfig config) => Validate(config, null, null);
+
+    /// <summary>Validates; <paramref name="path"/> and <paramref name="os"/> override PATH/OS for the missing-command warnings (tests).</summary>
+    public static ValidationResult Validate(MenuConfig config, string? path, string? os)
     {
         var issues = new List<ValidationIssue>();
 
@@ -27,6 +30,8 @@ public static class MenuValidator
             issues.Add(new("error", "start_menu", "start_menu is not set."));
         else if (!config.Menus.ContainsKey(config.StartMenu))
             issues.Add(new("error", "start_menu", $"start_menu '{config.StartMenu}' is not defined in menus."));
+
+        ValidateRequires(config, path, os, issues);
 
         foreach (var (menuId, menu) in config.Menus)
         {
@@ -49,6 +54,46 @@ public static class MenuValidator
 
         var hasErrors = issues.Any(i => i.Level == "error");
         return new ValidationResult(!hasErrors, issues, MenuTree.Render(config));
+    }
+
+    private static void ValidateRequires(MenuConfig config, string? path, string? os, List<ValidationIssue> issues)
+    {
+        if (config.Requires == null)
+            return;
+
+        var shapeOk = true;
+        for (var i = 0; i < config.Requires.Count; i++)
+        {
+            var req = config.Requires[i];
+            var where = $"requires[{i}]";
+            if (req == null)
+            {
+                issues.Add(new("error", where, "an entry must be an object with a 'command'."));
+                shapeOk = false;
+                continue;
+            }
+            if (string.IsNullOrWhiteSpace(req.Command))
+            {
+                issues.Add(new("error", where, "'command' is required."));
+                shapeOk = false;
+            }
+            if (!string.IsNullOrWhiteSpace(req.Os) &&
+                !RequirementDefinition.KnownOs.Contains(req.Os.Trim(), StringComparer.OrdinalIgnoreCase))
+            {
+                issues.Add(new("error", where,
+                    $"unknown os '{req.Os}' (use {string.Join(", ", RequirementDefinition.KnownOs)})."));
+                shapeOk = false;
+            }
+        }
+
+        if (!shapeOk)
+            return;
+
+        foreach (var req in Engine.Requirements.Missing(config, path, os))
+            issues.Add(new("warning", $"requires[{config.Requires.IndexOf(req)}]",
+                string.IsNullOrWhiteSpace(req.Install)
+                    ? $"command '{req.Command}' not found on PATH."
+                    : $"command '{req.Command}' not found on PATH (install: {req.Install})."));
     }
 
     private static void ValidateAction(

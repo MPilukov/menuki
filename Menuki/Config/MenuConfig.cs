@@ -32,6 +32,10 @@ public class MenuConfig
     [JsonPropertyName("editor")]
     public string? Editor { get; set; }
 
+    /// <summary>External commands this config needs on PATH, with optional install hints.</summary>
+    [JsonPropertyName("requires")]
+    public List<RequirementDefinition>? Requires { get; set; }
+
     [JsonPropertyName("menus")]
     public Dictionary<string, MenuDefinition> Menus { get; set; } = new();
 }

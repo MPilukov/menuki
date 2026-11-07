@@ -1,0 +1,78 @@
+{
+  "title": "iTerm layout",
+  "start_menu": "main",
+  "requires": [
+    { "command": "iterm-layout", "install": "brew install mpilukov/tap/iterm-layout", "os": "macos" }
+  ],
+  "menus": {
+    "main": {
+      "title": "iTerm layout",
+      "items": [
+        {
+          "name": "Save snapshot now",
+          "description": "Snapshot the open iTerm windows, tabs, panes, folders and Claude sessions.",
+          "action": { "type": "shell", "command": "iterm-layout save" }
+        },
+        {
+          "name": "List snapshots",
+          "description": "Show recent snapshots, newest first.",
+          "action": { "type": "shell", "command": "iterm-layout list" }
+        },
+        {
+          "name": "Show snapshot N",
+          "description": "Print what restoring snapshot N would open.",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              { "name": "n", "type": "number", "prompt": "Snapshot number (from the list)", "default": 1, "min": 1 }
+            ],
+            "command_template": "iterm-layout show {n}"
+          }
+        },
+        {
+          "name": "Restore snapshot N",
+          "description": "Recreate the windows, tabs and panes of snapshot N.",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              { "name": "n", "type": "number", "prompt": "Snapshot number (from the list)", "default": 1, "min": 1 }
+            ],
+            "command_template": "iterm-layout restore {n}"
+          }
+        },
+        {
+          "name": "Name snapshot N",
+          "description": "Give snapshot N a name; named snapshots are never cleaned up and can be restored by name.",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              { "name": "n", "type": "number", "prompt": "Snapshot number (from the list)", "default": 1, "min": 1 },
+              { "name": "label", "type": "string", "prompt": "Name (empty removes it)" }
+            ],
+            "command_template": "iterm-layout name {n} {label}"
+          }
+        },
+        {
+          "name": "Delete snapshot N",
+          "description": "Delete snapshot N (asks y/N first).",
+          "action": {
+            "type": "input+shell",
+            "inputs": [
+              { "name": "n", "type": "number", "prompt": "Snapshot number (from the list)", "min": 1, "required": true }
+            ],
+            "command_template": "iterm-layout delete {n}"
+          }
+        },
+        {
+          "name": "Restore latest",
+          "description": "Recreate the most recent snapshot.",
+          "action": { "type": "shell", "command": "iterm-layout restore 1" }
+        },
+        {
+          "name": "Exit",
+          "action": { "type": "exit" }
+        }
+      ]
+    }
+  }
+}

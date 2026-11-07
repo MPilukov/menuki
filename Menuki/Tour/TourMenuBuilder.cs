@@ -79,7 +79,7 @@ public static class TourMenuBuilder
         Info = new()
         {
             Info("What", "One JSON menu, three consumers: humans, shell scripts, AI agents."),
-            Info("Tip", "Press ? on any item for its description. Type to search. T changes theme."),
+            Info("Tip", "Press ? on any item for its description. Press / to search. T changes theme."),
             Info("Platform", $"{env.Os} · shell {Path.GetFileName(env.Shell)}"),
             Info("Explored", "0 / 9 sections (0%)"),
         },
@@ -118,7 +118,7 @@ public static class TourMenuBuilder
         Items = new()
         {
             Sub("Open a long list (search & pagination) →", "nav_big",
-                "A 30-item menu - try typing to search or arrow through pages."),
+                "A 30-item menu - press / to search or arrow through pages."),
             TourItem("Show this menu's JSON", TourActions.ShowJson,
                 new() { ["menu"] = "nav" }, "The submenu action is one line of JSON."),
             Back(),

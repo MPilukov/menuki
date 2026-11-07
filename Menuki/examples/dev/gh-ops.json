@@ -2,6 +2,9 @@
   "$schema": "../../../menuki.schema.json",
   "title": "GitHub Ops",
   "start_menu": "main",
+  "requires": [
+    { "command": "gh", "install": "brew install gh" }
+  ],
   "menus": {
     "main": {
       "title": "GitHub (gh)",

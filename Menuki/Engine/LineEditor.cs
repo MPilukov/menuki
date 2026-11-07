@@ -10,7 +10,15 @@ namespace Menuki.Engine;
 /// </summary>
 public static class LineEditor
 {
-    public static string ReadLine(IReadOnlyList<string>? history = null, bool mask = false)
+    /// <summary>Read a line; Esc is ignored.</summary>
+    public static string ReadLine(IReadOnlyList<string>? history = null, bool mask = false) =>
+        Read(history, mask, cancellable: false)!;
+
+    /// <summary>Read a line, or return null when the user presses Esc.</summary>
+    public static string? ReadLineOrCancel(IReadOnlyList<string>? history = null, bool mask = false) =>
+        Read(history, mask, cancellable: true);
+
+    private static string? Read(IReadOnlyList<string>? history, bool mask, bool cancellable)
     {
         history ??= Array.Empty<string>();
 
@@ -50,6 +58,10 @@ public static class LineEditor
                 case ConsoleKey.Enter:
                     Console.WriteLine();
                     return buffer.ToString();
+
+                case ConsoleKey.Escape when cancellable:
+                    Console.WriteLine();
+                    return null;
 
                 case ConsoleKey.Backspace:
                     if (pos > 0) { buffer.Remove(pos - 1, 1); pos--; Redraw(); }

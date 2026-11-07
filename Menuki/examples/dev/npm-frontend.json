@@ -1,6 +1,9 @@
 {
   "title": "NPM & Frontend Dev",
   "start_menu": "main",
+  "requires": [
+    { "command": "npm", "install": "brew install node" }
+  ],
   "menus": {
     "main": {
       "title": "Frontend Dev",
