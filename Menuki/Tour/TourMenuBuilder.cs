@@ -112,7 +112,7 @@ public static class TourMenuBuilder
         Title = "Menu navigation",
         Info = new()
         {
-            Info("Search", "Just start typing to filter items by name."),
+            Info("Search", "Press / and type to filter items by name; a query typed in the other keyboard layout (RU/EN) works too."),
             Info("Keys", "Up/Down move · Enter selects · ? info · T theme · Esc back."),
         },
         Items = new()

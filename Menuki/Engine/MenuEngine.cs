@@ -82,7 +82,7 @@ public class MenuEngine
         _currentItems = _searchQuery.Length == 0
             ? new List<MenuItem>(_allItems)
             : _allItems
-                .Where(i => i.Name.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase))
+                .Where(i => KeyboardLayout.Matches(i.Name, _searchQuery))
                 .ToList();
         _offset = 0;
     }

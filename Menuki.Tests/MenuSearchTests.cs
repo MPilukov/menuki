@@ -33,7 +33,9 @@ public class MenuSearchTests : IDisposable
                         item("Deploy", new { type = "exit" }),
                         item("Terminal logs", new { type = "exit" }),
                         item("Test runner", new { type = "submenu", menu = "child" }),
-                        item("Version info", new { type = "exit" })
+                        item("Version info", new { type = "exit" }),
+                        item("Repos sync", new { type = "exit" }),
+                        item("Привет мир", new { type = "exit" })
                     }
                 },
                 ["child"] = new { title = "Child", items = new object[] { new { name = "Only", action = new { type = "exit" } } } }
@@ -167,6 +169,25 @@ public class MenuSearchTests : IDisposable
         terminal.Send("v");
         await terminal.ExpectText("Press any key to continue");
         terminal.Send("x");
+        await terminal.ExpectMenu("Main");
+        terminal.Send(Escape);
+        await terminal.ExpectExit();
+    }
+
+    [Theory]
+    [InlineData("кузщ", "Search: кузщ_", "Repos sync")]       // "repo" typed with the Russian layout on
+    [InlineData("ghbdtn", "Search: ghbdtn_", "Привет мир")]  // "привет" typed with the English layout on
+    [InlineData("repo", "Search: repo_", "Repos sync")]
+    public async Task A_query_in_the_wrong_layout_still_finds_the_item(string query, string shown, string found)
+    {
+        using var terminal = Start();
+        await terminal.ExpectMenu("Main");
+        terminal.Send("/" + query);
+        var frame = await terminal.ExpectFrameWith(shown);
+        Assert.Contains(found, frame);
+        Assert.DoesNotContain("Deploy", frame);
+        Assert.DoesNotContain("Version info", frame);
+        terminal.Send(Escape);
         await terminal.ExpectMenu("Main");
         terminal.Send(Escape);
         await terminal.ExpectExit();
