@@ -17,6 +17,10 @@ public static class CompletionsCli
     {
         ("tour", "Guided, hands-on feature tour"),
         ("examples", "List or run a bundled example pack"),
+        ("store", "Add, list or remove a git repo of configs"),
+        ("install", "Install configs from the stores"),
+        ("update", "Update configs installed from the stores"),
+        ("publish", "Send local configs to a store"),
         ("list", "Headless: catalog of runnable actions (JSON)"),
         ("exec", "Headless: run one action (JSON)"),
         ("validate", "Headless: check a config (JSON)"),

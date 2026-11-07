@@ -74,6 +74,12 @@ class Program
             Environment.Exit(Examples.ExamplesCli.Run(args));
         }
 
+        // Stores: menu configs shared through git repositories.
+        if (Store.StoreCli.IsStoreCommand(args))
+        {
+            Environment.Exit(Store.StoreCli.Run(args));
+        }
+
         // `menuki <name>`: a bare word that is not a subcommand opens a saved config by name.
         var configArg = GetConfigPath(args)
                         ?? (args.Length > 0 && ConfigResolver.IsName(args[0]) ? args[0] : null);
@@ -160,6 +166,13 @@ class Program
               menuki examples <name>            Run one
               menuki examples <name> --save [path]   Copy its JSON to a file
               menuki examples <name> --print    Print its JSON to stdout
+
+            Stores (menu configs shared through a git repo, private ones too):
+              menuki store add <owner/repo[/folder]|URL|path>   Remember a repo of configs
+              menuki store [list] | store remove <name>         The stores
+              menuki install [name...] [--store S] [--force]    Pick configs from the stores and install them
+              menuki update [name...] [--force]                 Take newer store versions of installed configs
+              menuki publish <name...> [--store S] [-m MSG]     Send local configs to a store (commit + push)
 
             Other:
               menuki mcp                        Run the MCP server (stdio)

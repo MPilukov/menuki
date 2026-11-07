@@ -16,6 +16,7 @@ Build interactive terminal menus and runbooks from a single JSON file - the same
 - **Themes & settings** - `auto` theme adapts to any terminal background, plus 7 more color themes (T cycles them) and a Settings screen to toggle the selection marker; choices persist
 - **Guided tour** - `menuki tour` (and a welcome screen on no-args) walks through every feature, adapting to the tools on your machine
 - **Built-in examples** - ~20 curated packs embedded in the binary; `menuki examples <name>` runs, `--save` copies, `--print` shows one (no repo clone needed)
+- **Stores** - share configs through a git repo (private too): `menuki store add owner/repo`, `menuki install`, `menuki update`, `menuki publish <name>`
 - **Composite actions** - `sequence` runs steps as a mini pipeline (stop-on-error, retry, hooks); `parallel` runs them concurrently
 - **Background jobs** - `background` starts long-running processes without blocking; a `jobs` manager views/stops them
 - **Result formatting** - pretty-print / table / JSONPath-extract a shell command's output, then copy or save it
@@ -155,6 +156,34 @@ menuki examples docker --print  # print its JSON to stdout
 ```
 
 They are also reachable from the welcome screen under "Browse example packs".
+
+### Share your menus through a git repo (stores)
+
+Keep your configs in a git repository - a private one works - and install them on any
+machine. menuki clones it with your own git, so whatever access git already has is enough
+(`gh auth login && gh auth setup-git`, or an SSH key).
+
+```bash
+menuki store add you/menuki-configs     # once per machine: owner/repo[/folder], a git URL or a local path
+menuki install                          # numbered list of the store's configs; pick numbers or names
+menuki install my                       # one config, plus every config it opens with open-config
+menuki update                           # newer store versions of what you installed
+menuki publish my                       # send a local config (and what it opens) back: commit + push
+menuki store list | store remove <name>
+```
+
+- The list shows each config's state: installed, update available, changed locally, or a
+  different local copy that did not come from the store.
+- A config you edited after installing it is never overwritten by `update`; `--force`
+  replaces it, and the old file goes to `~/.menuki/backup/`. `install` asks before
+  replacing a different local copy (`d` shows the diff).
+- `publish` refuses configs that look like they hold secrets (tokens, API keys, passwords,
+  credentials or keys in URLs); move them out, or pass `--allow-secrets` if they are not
+  secrets or the repository is private and you accept that. `--force` only replaces a store
+  version this machine has not seen; it never skips the secret check.
+- Missing tools from a config's `requires` are listed right after it is installed.
+- State: `~/.menuki/store.json` (stores and what was installed from where), clones in
+  `~/.menuki/stores/`.
 
 ## Tests
 
