@@ -46,6 +46,18 @@ public static class ManPage
         .B --print
         to write its JSON to stdout.
         .TP
+        .B store add \fIowner/repo\fR[\fI/folder\fR] | \fBstore list\fR | \fBstore remove\fR \fIname\fR
+        Remember a git repository of configs (a private one works with your own git access), list or forget them.
+        .TP
+        .B install \fR[\fIname\fR ...] [\fB--store\fR \fIS\fR] [\fB--force\fR]
+        Install configs from the stores, with the configs they open. Without names, shows a numbered list to pick from.
+        .TP
+        .B update \fR[\fIname\fR ...] [\fB--force\fR]
+        Take newer store versions of installed configs; local edits are kept unless \fB--force\fR.
+        .TP
+        .B publish \fIname\fR ... [\fB--store\fR \fIS\fR] [\fB-m\fR \fImessage\fR] [\fB--all\fR]
+        Copy local configs into a store and commit and push them; refuses configs that look like they hold secrets.
+        .TP
         .B list --config \fIpath\fR
         Headless: print the catalog of runnable actions as JSON.
         .TP
