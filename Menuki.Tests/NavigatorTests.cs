@@ -1,8 +1,7 @@
-using System.Diagnostics;
-using System.Text;
 using System.Text.Json;
 using Menuki.Config;
 using Xunit;
+using static Menuki.Tests.PtyTerminal;
 
 namespace Menuki.Tests;
 
@@ -35,12 +34,12 @@ public class NavigatorTests
                 Item("Target", ActionTypes.Submenu, "child")),
             ("child", Menu("Child", Item("Only", ActionTypes.Exit)))));
 
-        using var terminal = new Terminal(path, files.Directory);
-        await terminal.ExpectMenu("Main", "First");
+        using var terminal = new PtyTerminal(path, files.Directory);
+        await ExpectSelected(terminal, "Main", "First");
         terminal.Send(Down + Down + Enter);
-        await terminal.ExpectMenu("Child", "Only");
+        await ExpectSelected(terminal, "Child", "Only");
         terminal.Send(Escape);
-        await terminal.ExpectMenu("Main", "Target");
+        await ExpectSelected(terminal, "Main", "Target");
         terminal.Send(Escape);
         await terminal.ExpectExit();
     }
@@ -54,12 +53,12 @@ public class NavigatorTests
             Item("First", ActionTypes.Exit),
             Item("Open nested", ActionTypes.OpenConfig, path: "nested.json"))));
 
-        using var terminal = new Terminal(path, files.Directory);
-        await terminal.ExpectMenu("Main", "First");
+        using var terminal = new PtyTerminal(path, files.Directory);
+        await ExpectSelected(terminal, "Main", "First");
         terminal.Send(Down + Enter);
-        await terminal.ExpectMenu("Nested", "Only");
+        await ExpectSelected(terminal, "Nested", "Only");
         terminal.Send(Escape);
-        await terminal.ExpectMenu("Main", "Open nested");
+        await ExpectSelected(terminal, "Main", "Open nested");
         terminal.Send(Escape);
         await terminal.ExpectExit();
     }
@@ -73,8 +72,8 @@ public class NavigatorTests
         var path = files.Save("main", Config(Menu("Main",
             Item("First", ActionTypes.Exit), Item("Target", ActionTypes.Submenu, result))));
 
-        using var terminal = new Terminal(path, files.Directory);
-        await terminal.ExpectMenu("Main", "First");
+        using var terminal = new PtyTerminal(path, files.Directory);
+        await ExpectSelected(terminal, "Main", "First");
         // A submenu executor can return a Navigator sentinel, making this an item
         // selection (where MenuEngine records SelectedIndex), not a keyboard shortcut.
         terminal.Send(Down + Enter);
@@ -82,7 +81,7 @@ public class NavigatorTests
         if (prompt != "Press any key to continue")
             await terminal.ExpectText("Press any key to continue");
         terminal.Send("x");
-        await terminal.ExpectMenu("Main", "Target");
+        await ExpectSelected(terminal, "Main", "Target");
         terminal.Send(Escape);
         await terminal.ExpectExit();
     }
@@ -96,14 +95,14 @@ public class NavigatorTests
         var path = files.Save("main", Config(Menu("Main",
             Item("First", ActionTypes.Exit), Item("Target", ActionTypes.Exit))));
 
-        using var terminal = new Terminal(path, files.Directory);
-        await terminal.ExpectMenu("Main", "First");
+        using var terminal = new PtyTerminal(path, files.Directory);
+        await ExpectSelected(terminal, "Main", "First");
         terminal.Send(Down + hotkey);
         await terminal.ExpectText(prompt);
         if (prompt != "Press any key to continue")
             await terminal.ExpectText("Press any key to continue");
         terminal.Send("x");
-        await terminal.ExpectMenu("Main", "Target");
+        await ExpectSelected(terminal, "Main", "Target");
         terminal.Send(Escape);
         await terminal.ExpectExit();
     }
@@ -115,12 +114,12 @@ public class NavigatorTests
         var path = files.Save("main", Config(Menu("Main",
             Item("First", ActionTypes.Exit), Item("Settings item", ActionTypes.Settings))));
 
-        using var terminal = new Terminal(path, files.Directory);
-        await terminal.ExpectMenu("Main", "First");
+        using var terminal = new PtyTerminal(path, files.Directory);
+        await ExpectSelected(terminal, "Main", "First");
         terminal.Send(Down + Enter);
-        await terminal.ExpectMenu("Settings", "Theme:");
+        await ExpectSelected(terminal, "Settings", "Theme:");
         terminal.Send(Escape);
-        await terminal.ExpectMenu("Main", "Settings item");
+        await ExpectSelected(terminal, "Main", "Settings item");
         terminal.Send(Escape);
         await terminal.ExpectExit();
     }
@@ -135,23 +134,22 @@ public class NavigatorTests
                 Item("Enter grandchild", ActionTypes.Submenu, "grandchild"))),
             ("grandchild", Menu("Grandchild", Item("Only", ActionTypes.Exit)))));
 
-        using var terminal = new Terminal(path, files.Directory);
-        await terminal.ExpectMenu("Main", "First");
+        using var terminal = new PtyTerminal(path, files.Directory);
+        await ExpectSelected(terminal, "Main", "First");
         terminal.Send(Down + Enter);
-        await terminal.ExpectMenu("Child", "Zero");
+        await ExpectSelected(terminal, "Child", "Zero");
         terminal.Send(Down + Down + Enter);
-        await terminal.ExpectMenu("Grandchild", "Only");
+        await ExpectSelected(terminal, "Grandchild", "Only");
         terminal.Send(Escape);
-        await terminal.ExpectMenu("Child", "Enter grandchild");
+        await ExpectSelected(terminal, "Child", "Enter grandchild");
         terminal.Send(Escape);
-        await terminal.ExpectMenu("Main", "Enter child");
+        await ExpectSelected(terminal, "Main", "Enter child");
         terminal.Send(Escape);
         await terminal.ExpectExit();
     }
 
-    private const string Down = "\u001bOB"; // Application cursor mode requested by the terminal.
-    private const string Enter = "\r";
-    private const string Escape = "\u001b";
+    private static async Task ExpectSelected(PtyTerminal terminal, string title, string selected) =>
+        Assert.Contains($"▶ {selected}", await terminal.ExpectMenu(title));
 
     private sealed class ConfigFiles : IDisposable
     {
@@ -167,121 +165,5 @@ public class NavigatorTests
         }
 
         public void Dispose() => System.IO.Directory.Delete(Directory, recursive: true);
-    }
-
-    // Console.ReadKey and CursorTop require a terminal. `script` gives the real CLI a pty;
-    // this harness answers its cursor-position queries and records each rendered menu.
-    private sealed class Terminal : IDisposable
-    {
-        private readonly Process _process;
-        private readonly StringBuilder _output = new();
-        private readonly object _gate = new();
-        private readonly Task _reader;
-        private int _cursor;
-        private int _answeredQueries;
-
-        public Terminal(string configPath, string settingsHome)
-        {
-            var dll = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../Menuki/bin",
-                AppContext.BaseDirectory.Contains("/Release/") ? "Release" : "Debug", "net8.0", "Menuki.dll"));
-            var info = new ProcessStartInfo("script")
-            {
-                RedirectStandardInput = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false
-            };
-            if (OperatingSystem.IsMacOS())
-            {
-                foreach (var arg in new[] { "-q", "/dev/null", "dotnet", dll, "--config", configPath })
-                    info.ArgumentList.Add(arg);
-            }
-            else
-            {
-                info.ArgumentList.Add("-q");
-                info.ArgumentList.Add("-c");
-                info.ArgumentList.Add($"dotnet {Quote(dll)} --config {Quote(configPath)}");
-                info.ArgumentList.Add("/dev/null");
-            }
-            info.Environment["DOTNET_ROLL_FORWARD"] = "Major";
-            info.Environment["MENUKI_HOME"] = Path.Combine(settingsHome, "settings");
-            _process = Process.Start(info)!;
-            _reader = ReadOutput();
-        }
-
-        private static string Quote(string value) => "'" + value.Replace("'", "'\\''") + "'";
-
-        private async Task ReadOutput()
-        {
-            var buffer = new char[4096];
-            while (true)
-            {
-                var count = await _process.StandardOutput.ReadAsync(buffer);
-                if (count == 0) return;
-                int queries;
-                lock (_gate)
-                {
-                    _output.Append(buffer, 0, count);
-                    var total = _output.ToString().Split("\u001b[6n").Length - 1;
-                    queries = total - _answeredQueries;
-                    _answeredQueries = total;
-                }
-                for (var i = 0; i < queries; i++) Send("\u001b[1;1R");
-            }
-        }
-
-        public void Send(string keys)
-        {
-            lock (_gate)
-            {
-                _process.StandardInput.Write(keys);
-                _process.StandardInput.Flush();
-            }
-        }
-
-        public async Task ExpectMenu(string title, string selected)
-        {
-            var frame = await Until("Up/Down: Navigate");
-            Assert.Contains($"-------- {title} --------", frame);
-            Assert.Contains($"▶ {selected}", frame);
-        }
-
-        public async Task ExpectText(string text) => await Until(text);
-
-        private async Task<string> Until(string token)
-        {
-            var deadline = DateTime.UtcNow.AddSeconds(10);
-            while (DateTime.UtcNow < deadline)
-            {
-                lock (_gate)
-                {
-                    var output = _output.ToString();
-                    var found = output.IndexOf(token, _cursor, StringComparison.Ordinal);
-                    if (found >= 0)
-                    {
-                        var frame = output[_cursor..(found + token.Length)];
-                        _cursor = found + token.Length;
-                        return frame;
-                    }
-                }
-                if (_process.HasExited) break;
-                await Task.Delay(10);
-            }
-            throw new Xunit.Sdk.XunitException($"Timed out waiting for '{token}'. Output:\n{_output}");
-        }
-
-        public async Task ExpectExit()
-        {
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-            await _process.WaitForExitAsync(timeout.Token);
-            await _reader;
-            Assert.Equal(0, _process.ExitCode);
-        }
-
-        public void Dispose()
-        {
-            if (!_process.HasExited) _process.Kill(entireProcessTree: true);
-            _process.Dispose();
-        }
     }
 }
