@@ -693,10 +693,14 @@ public class StoreCli
         try
         {
             using var p = Process.Start(psi)!;
-            var stdout = p.StandardOutput.ReadToEndAsync();
-            var stderr = p.StandardError.ReadToEndAsync();
+            // One stream after the other on this thread, like ShellRunner. Reading both at once (async or on a
+            // second thread) crashes the self-contained single-file build on macOS: the first reads of two
+            // pipes race in Socket.LoadSocketTypeFromHandle (AccessViolationException, about every other clone).
+            // git's stderr here is a few lines, far below the pipe buffer, so this cannot block.
+            var stdout = p.StandardOutput.ReadToEnd();
+            var stderr = p.StandardError.ReadToEnd();
             p.WaitForExit();
-            return (p.ExitCode, stdout.Result, stderr.Result);
+            return (p.ExitCode, stdout, stderr);
         }
         catch (System.ComponentModel.Win32Exception)
         {
