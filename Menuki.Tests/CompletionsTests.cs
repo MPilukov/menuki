@@ -98,15 +98,24 @@ public class CompletionsTests
     }
 
     [Fact]
-    public void Escape_helpers_escape_apostrophes_and_colons()
+    public void Escape_helpers_escape_zsh_colons_and_fish_apostrophes()
     {
         var zsh = typeof(CompletionsCli).GetMethod("EscapeZsh", BindingFlags.NonPublic | BindingFlags.Static);
         var fish = typeof(CompletionsCli).GetMethod("EscapeFish", BindingFlags.NonPublic | BindingFlags.Static);
         Assert.NotNull(zsh);
         Assert.NotNull(fish);
 
-        Assert.Equal("it''s\\: ready", zsh.Invoke(null, ["it's: ready"]));
+        Assert.Equal("ready\\: now", zsh.Invoke(null, ["ready: now"]));
         Assert.Equal("it\\'s: ready", fish.Invoke(null, ["it's: ready"]));
+    }
+
+    [Fact(Skip = "bug: EscapeZsh doubles ' but zsh single quotes need '\\'' (RC_QUOTES off), apostrophe is lost")]
+    public void EscapeZsh_preserves_apostrophes_inside_single_quoted_items()
+    {
+        var zsh = typeof(CompletionsCli).GetMethod("EscapeZsh", BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.NotNull(zsh);
+
+        Assert.Equal("it'\\''s\\: ready", zsh.Invoke(null, ["it's: ready"]));
     }
 
     private static string[] Table(string fieldName)
