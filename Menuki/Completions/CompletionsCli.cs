@@ -214,6 +214,6 @@ public static class CompletionsCli
         return string.Join("\n", lines) + "\n";
     }
 
-    private static string EscapeZsh(string s) => s.Replace("'", "''").Replace(":", "\\:");
+    private static string EscapeZsh(string s) => s.Replace("'", "'\\''").Replace(":", "\\:");
     private static string EscapeFish(string s) => s.Replace("'", "\\'");
 }
